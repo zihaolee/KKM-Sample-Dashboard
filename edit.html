@@ -98,7 +98,7 @@
 <!-- LOGIN SCREEN -->
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-title">Boffo — Internal Access</div>
+    <div class="login-title">Aspek — Internal Access</div>
     <div class="login-sub">Enter password to update deployment progress</div>
     <input type="password" class="login-input" id="pw-input" placeholder="Password" onkeydown="if(event.key==='Enter')checkPw()">
     <button class="login-btn" onclick="checkPw()">Enter</button>
@@ -177,7 +177,7 @@
 <script>
 // ── Simple password check (client-side, good enough for internal tool) ──
 // Change this to whatever password you want
-const ACCESS_PW = 'boffo2024';
+const ACCESS_PW = 'aspek2026!';
 
 function checkPw() {
   const v = document.getElementById('pw-input').value;
@@ -231,11 +231,26 @@ let LOCAL = {};
 let generatedJSON = null;
 
 function loadFromStorage() {
-  try { LOCAL = JSON.parse(localStorage.getItem('kkm_edit')||'{}'); } catch(e) { LOCAL = {}; }
-  const states = [...new Set(LOCATIONS.map(l=>l.state))].sort();
-  const sel = document.getElementById('edit-state');
-  states.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o); });
-  renderTable();
+  fetch('data.json?t=' + Date.now())
+    .then(r => r.json())
+    .then(data => {
+      LOCAL = {};
+      if (data.locations) {
+        Object.entries(data.locations).forEach(([id, val]) => {
+          LOCAL[id] = { installed: val.installed || 0, notes: val.notes || '' };
+        });
+      }
+      localStorage.setItem('kkm_edit', JSON.stringify(LOCAL));
+    })
+    .catch(() => {
+      try { LOCAL = JSON.parse(localStorage.getItem('kkm_edit')||'{}'); } catch(e) { LOCAL = {}; }
+    })
+    .finally(() => {
+      const states = [...new Set(LOCATIONS.map(l=>l.state))].sort();
+      const sel = document.getElementById('edit-state');
+      states.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o); });
+      renderTable();
+    });
 }
 
 function getV(id) { return LOCAL[id]?.installed||0; }
@@ -302,7 +317,7 @@ function generate() {
   localStorage.setItem('kkm_edit', JSON.stringify(LOCAL));
   const locs = {};
   LOCATIONS.forEach(l=>{ locs[l.id]={ installed: LOCAL[l.id]?.installed||0, notes: LOCAL[l.id]?.notes||'' }; });
-  generatedJSON = { updated: new Date().toISOString(), updated_by: "Boffo Sdn Bhd", locations: locs };
+  generatedJSON = { updated: new Date().toISOString(), updated_by: "Aspek Tumpuan Sdn Bhd", locations: locs };
   document.getElementById('dl-ts').textContent = 'Generated at ' + new Date().toLocaleTimeString('en-MY');
   document.getElementById('download-panel').style.display = 'block';
   document.getElementById('download-panel').scrollIntoView({behavior:'smooth', block:'nearest'});
