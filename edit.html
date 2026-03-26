@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KKM Dashboard — Update Progress</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f4f0; --card: #ffffff; --card2: #f0ede8; --border: #e0ddd7;
+    --text: #1a1917; --muted: #6b6a65; --accent: #1a4f8a; --accent-light: #e6eef8;
+    --green: #1d6b47; --green-bg: #e4f3ec; --amber: #7a4f0a; --amber-bg: #fdf0d8;
+    --mono: 'IBM Plex Mono', monospace; --sans: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  nav { background: var(--accent); color: #fff; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .nav-brand { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .nav-sub { font-size: 11px; font-family: var(--mono); opacity: 0.6; }
+  .nav-right { font-size: 12px; font-family: var(--mono); opacity: 0.7; }
+
+  .page { padding: 28px 32px; max-width: 1100px; margin: 0 auto; }
+
+  /* LOGIN OVERLAY */
+  #login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .login-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 340px; text-align: center; }
+  .login-title { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .login-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+  .login-input { width: 100%; border: 1px solid var(--border); border-radius: 7px; padding: 10px 14px; font-size: 14px; font-family: var(--sans); text-align: center; letter-spacing: 0.1em; outline: none; margin-bottom: 12px; }
+  .login-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(26,79,138,0.12); }
+  .login-btn { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 7px; padding: 10px; font-size: 14px; font-family: var(--sans); font-weight: 500; cursor: pointer; }
+  .login-btn:hover { background: #163f6f; }
+  .login-err { font-size: 12px; color: #8a1f1f; margin-top: 8px; display: none; }
+
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+  .page-title { font-size: 22px; font-weight: 600; }
+  .page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  .tip-box { background: var(--accent-light); border: 1px solid rgba(26,79,138,0.2); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--accent); margin-bottom: 20px; line-height: 1.5; }
+
+  .filter-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .filter-bar select, .filter-bar input { background: var(--card); border: 1px solid var(--border); border-radius: 7px; padding: 7px 12px; font-size: 13px; font-family: var(--sans); color: var(--text); outline: none; }
+  .filter-bar select:focus, .filter-bar input:focus { border-color: var(--accent); }
+  .filter-bar input { flex: 1; min-width: 180px; }
+  .filter-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+  .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: var(--card2); padding: 10px 14px; text-align: left; font-size: 11px; font-family: var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--card2); }
+  tbody td { padding: 8px 14px; vertical-align: middle; }
+
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .badge.complete { background: var(--green-bg); color: var(--green); }
+  .badge.complete::before { background: var(--green); }
+  .badge.inprogress { background: var(--amber-bg); color: var(--amber); }
+  .badge.inprogress::before { background: #d4880f; }
+  .badge.pending { background: var(--card2); color: var(--muted); }
+  .badge.pending::before { background: #aaa; }
+
+  .qty-ctrl { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .adj-btn { width: 26px; height: 26px; border: 1px solid var(--border); border-radius: 5px; background: var(--card2); cursor: pointer; font-size: 16px; line-height: 1; display: flex; align-items: center; justify-content: center; color: var(--text); transition: all 0.1s; }
+  .adj-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .qty-input { width: 56px; font-family: var(--mono); font-size: 13px; text-align: center; border: 1px solid var(--border); border-radius: 5px; padding: 4px 6px; background: var(--bg); color: var(--text); outline: none; }
+  .qty-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(26,79,138,0.1); }
+  .of-label { font-size: 10px; color: var(--muted); font-family: var(--mono); text-align: center; margin-top: 2px; }
+
+  .note-input { width: 100%; border: 1px solid var(--border); border-radius: 5px; padding: 5px 8px; font-size: 12px; font-family: var(--sans); color: var(--text); background: var(--bg); resize: none; height: 32px; outline: none; }
+  .note-input:focus { border-color: var(--accent); }
+
+  .action-bar { display: flex; gap: 10px; align-items: center; padding: 16px 0; border-top: 1px solid var(--border); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 7px; font-size: 13px; font-family: var(--sans); font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--text); transition: all 0.15s; text-decoration: none; }
+  .btn:hover { border-color: #aaa; background: var(--card2); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.primary:hover { background: #163f6f; }
+  .btn.danger { color: #8a1f1f; }
+  .btn.danger:hover { background: #fde8e8; border-color: #f5a0a0; }
+  .save-msg { font-size: 12px; font-weight: 500; display: none; }
+  .save-msg.success { color: var(--green); }
+  .save-msg.info { color: var(--accent); }
+
+  /* DOWNLOAD PANEL */
+  #download-panel { background: var(--green-bg); border: 1px solid #a0d4b8; border-radius: 10px; padding: 20px; margin-bottom: 20px; display: none; }
+  .dl-title { font-size: 14px; font-weight: 600; color: var(--green); margin-bottom: 8px; }
+  .dl-sub { font-size: 12px; color: var(--green); margin-bottom: 14px; line-height: 1.5; }
+  .dl-steps { font-size: 12px; color: #155535; line-height: 1.8; }
+  .dl-steps code { font-family: var(--mono); background: rgba(0,0,0,0.07); padding: 1px 5px; border-radius: 3px; }
+
+  @media (max-width: 600px) { nav { padding: 0 16px; } .page { padding: 16px; } }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-title">Boffo — Internal Access</div>
+    <div class="login-sub">Enter password to update deployment progress</div>
+    <input type="password" class="login-input" id="pw-input" placeholder="Password" onkeydown="if(event.key==='Enter')checkPw()">
+    <button class="login-btn" onclick="checkPw()">Enter</button>
+    <div class="login-err" id="pw-err">Incorrect password</div>
+  </div>
+</div>
+
+<nav>
+  <div>
+    <div class="nav-brand">KKM Switch Deployment</div>
+    <div class="nav-sub">Internal — Update Progress</div>
+  </div>
+  <div class="nav-right">
+    <a href="index.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:12px">← View dashboard</a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Update Installation Progress</div>
+      <div class="page-sub">Enter installed switch counts. When done, download data.json and commit it to GitHub.</div>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <strong>Workflow:</strong> Update counts below → click <strong>Generate data.json</strong> → download the file → replace <code>data.json</code> in your GitHub repo → GitHub Pages auto-updates the customer dashboard within ~60 seconds.
+  </div>
+
+  <!-- DOWNLOAD PANEL (shown after generate) -->
+  <div id="download-panel">
+    <div class="dl-title">✓ data.json ready to download</div>
+    <div class="dl-sub">Download the file, then commit it to your GitHub repo to update the live dashboard.</div>
+    <div class="dl-steps">
+      1. Download the file (button below)<br>
+      2. Replace <code>data.json</code> in your local repo folder<br>
+      3. Run: <code>git add data.json && git commit -m "Update progress" && git push</code><br>
+      4. Customer dashboard refreshes automatically in ~60 seconds
+    </div>
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+      <button class="btn primary" onclick="downloadJSON()" id="dl-btn">⬇ Download data.json</button>
+      <span style="font-size:11px;font-family:var(--mono);color:#155535" id="dl-ts"></span>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <span class="filter-label">Filter:</span>
+    <input type="text" id="edit-search" placeholder="Search facility..." oninput="renderTable()">
+    <select id="edit-state" onchange="renderTable()"><option value="">All States</option></select>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:36px">#</th>
+          <th>Facility</th>
+          <th>State</th>
+          <th style="text-align:center;width:60px">Total</th>
+          <th style="text-align:center;min-width:160px">Installed</th>
+          <th style="width:110px">Status</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="edit-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn primary" onclick="generate()">Generate data.json</button>
+    <button class="btn danger" onclick="resetAll()">Reset all to 0</button>
+    <span class="save-msg" id="save-msg"></span>
+  </div>
+</div>
+
+<script>
+// ── Simple password check (client-side, good enough for internal tool) ──
+// Change this to whatever password you want
+const ACCESS_PW = 'boffo2024';
+
+function checkPw() {
+  const v = document.getElementById('pw-input').value;
+  if (v === ACCESS_PW) {
+    document.getElementById('login-screen').style.display = 'none';
+    loadFromStorage();
+  } else {
+    document.getElementById('pw-err').style.display = 'block';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
+}
+
+const LOCATIONS = [
+  {id:1,  state:"WP Putrajaya",  facility:"Bahagian Pengurusan Maklumat, Kompleks E", qty:17},
+  {id:2,  state:"Selangor",      facility:"Makmal Kesihatan Awam Kebangsaan Sungai Buloh", qty:11},
+  {id:3,  state:"Selangor",      facility:"Hospital Banting", qty:13},
+  {id:4,  state:"Selangor",      facility:"Hospital Tengku Ampuan Rahimah", qty:20},
+  {id:5,  state:"Selangor",      facility:"Hospital Orang Asli Gombak", qty:5},
+  {id:6,  state:"Johor",         facility:"Hospital Sultanah Aminah", qty:13},
+  {id:7,  state:"Johor",         facility:"Hospital Pakar Sultanah Fatimah", qty:9},
+  {id:8,  state:"Johor",         facility:"Hospital Sultanah Nora Ismail", qty:14},
+  {id:9,  state:"Johor",         facility:"Hospital Tangkak", qty:8},
+  {id:10, state:"Johor",         facility:"Hospital Kota Tinggi", qty:8},
+  {id:11, state:"Johor",         facility:"Hospital Permai", qty:10},
+  {id:12, state:"Johor",         facility:"Hospital Temenggong Seri Maharaja Tun Ibrahim", qty:10},
+  {id:13, state:"Kedah",         facility:"Hospital Kulim", qty:13},
+  {id:14, state:"Kedah",         facility:"Hospital Baling", qty:5},
+  {id:15, state:"Kedah",         facility:"Hospital Sultanah Maliha, Langkawi", qty:6},
+  {id:16, state:"Kedah",         facility:"Pejabat Kesihatan Daerah Kota Setar", qty:3},
+  {id:17, state:"Kedah",         facility:"Kolej Kejururawatan Alor Setar", qty:3},
+  {id:18, state:"Kelantan",      facility:"Hospital Tanah Merah", qty:2},
+  {id:19, state:"Kelantan",      facility:"Hospital Pasir Mas", qty:5},
+  {id:20, state:"Melaka",        facility:"Jabatan Kesihatan Negeri Melaka", qty:16},
+  {id:21, state:"Melaka",        facility:"Hospital Melaka", qty:19},
+  {id:22, state:"Melaka",        facility:"Hospital Alor Gajah", qty:5},
+  {id:23, state:"Melaka",        facility:"Hospital Jasin", qty:17},
+  {id:24, state:"Pahang",        facility:"Hospital Tengku Ampuan Afzan", qty:15},
+  {id:25, state:"Pahang",        facility:"Hospital Bentong", qty:10},
+  {id:26, state:"Pahang",        facility:"Hospital Jengka", qty:10},
+  {id:27, state:"Pahang",        facility:"Hospital Jerantut", qty:10},
+  {id:28, state:"Perak",         facility:"Hospital Raja Perempuan Bainun", qty:4},
+  {id:29, state:"Perak",         facility:"Makmal Kesihatan Awam Kebangsaan Ipoh", qty:5},
+  {id:30, state:"Perak",         facility:"Kolej Sains Kesihatan Bersekutu Sultan Azlan Shah", qty:11},
+  {id:31, state:"Perlis",        facility:"Pejabat Kesihatan Daerah Perlis", qty:2},
+  {id:32, state:"Pulau Pinang",  facility:"Hospital Pulau Pinang", qty:13},
+  {id:33, state:"Pulau Pinang",  facility:"Hospital Seberang Jaya", qty:8},
+];
+
+let LOCAL = {};
+let generatedJSON = null;
+
+function loadFromStorage() {
+  try { LOCAL = JSON.parse(localStorage.getItem('kkm_edit')||'{}'); } catch(e) { LOCAL = {}; }
+  const states = [...new Set(LOCATIONS.map(l=>l.state))].sort();
+  const sel = document.getElementById('edit-state');
+  states.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o); });
+  renderTable();
+}
+
+function getV(id) { return LOCAL[id]?.installed||0; }
+function getN(id) { return LOCAL[id]?.notes||''; }
+function status(qty,inst) { if(!inst) return 'pending'; if(inst>=qty) return 'complete'; return 'inprogress'; }
+function badge(s) { const L={complete:'Complete',inprogress:'In Progress',pending:'Pending'}; return `<span class="badge ${s}">${L[s]}</span>`; }
+
+function renderTable() {
+  const search = (document.getElementById('edit-search').value||'').toLowerCase();
+  const state  = document.getElementById('edit-state').value;
+  const rows = LOCATIONS.filter(l=>{
+    if (state && l.state!==state) return false;
+    if (search && !l.facility.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  document.getElementById('edit-tbody').innerHTML = rows.map(l=>{
+    const v=getV(l.id), n=getN(l.id), s=status(l.qty,v);
+    return `<tr id="row-${l.id}">
+      <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${l.id}</td>
+      <td style="font-weight:500">${l.facility}</td>
+      <td style="font-size:11px;color:var(--muted)">${l.state}</td>
+      <td style="font-family:var(--mono);text-align:center">${l.qty}</td>
+      <td>
+        <div class="qty-ctrl">
+          <button class="adj-btn" onclick="adj(${l.id},-1)">−</button>
+          <input class="qty-input" type="number" min="0" max="${l.qty}" value="${v}" id="v-${l.id}" oninput="live(${l.id})">
+          <button class="adj-btn" onclick="adj(${l.id},1)">+</button>
+        </div>
+        <div class="of-label">of ${l.qty}</div>
+      </td>
+      <td id="st-${l.id}">${badge(s)}</td>
+      <td><textarea class="note-input" id="n-${l.id}" placeholder="Optional notes...">${n}</textarea></td>
+    </tr>`;
+  }).join('');
+}
+
+function adj(id, d) {
+  const inp = document.getElementById('v-'+id); if(!inp) return;
+  const loc = LOCATIONS.find(l=>l.id===id);
+  inp.value = Math.max(0, Math.min(loc.qty, (parseInt(inp.value)||0)+d));
+  live(id);
+}
+
+function live(id) {
+  const inp = document.getElementById('v-'+id);
+  const loc = LOCATIONS.find(l=>l.id===id); if(!inp||!loc) return;
+  let v = Math.max(0, Math.min(loc.qty, parseInt(inp.value)||0));
+  inp.value = v;
+  if(!LOCAL[id]) LOCAL[id]={installed:0,notes:''};
+  LOCAL[id].installed = v;
+  const ni = document.getElementById('n-'+id);
+  if(ni) LOCAL[id].notes = ni.value.trim();
+  localStorage.setItem('kkm_edit', JSON.stringify(LOCAL));
+  const s = document.getElementById('st-'+id);
+  if(s) s.innerHTML = badge(status(loc.qty,v));
+}
+
+function syncNotes() {
+  LOCATIONS.forEach(l=>{ const ni=document.getElementById('n-'+l.id); if(ni){ if(!LOCAL[l.id]) LOCAL[l.id]={installed:0,notes:''}; LOCAL[l.id].notes=ni.value.trim(); }});
+}
+
+function generate() {
+  syncNotes();
+  localStorage.setItem('kkm_edit', JSON.stringify(LOCAL));
+  const locs = {};
+  LOCATIONS.forEach(l=>{ locs[l.id]={ installed: LOCAL[l.id]?.installed||0, notes: LOCAL[l.id]?.notes||'' }; });
+  generatedJSON = { updated: new Date().toISOString(), updated_by: "Boffo Sdn Bhd", locations: locs };
+  document.getElementById('dl-ts').textContent = 'Generated at ' + new Date().toLocaleTimeString('en-MY');
+  document.getElementById('download-panel').style.display = 'block';
+  document.getElementById('download-panel').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function downloadJSON() {
+  if (!generatedJSON) { generate(); return; }
+  const blob = new Blob([JSON.stringify(generatedJSON, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'data.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function resetAll() {
+  if (!confirm('Reset all counts to 0? Your locally saved data will be cleared.')) return;
+  LOCAL = {};
+  localStorage.removeItem('kkm_edit');
+  renderTable();
+  document.getElementById('download-panel').style.display = 'none';
+}
+</script>
+</body>
+</html>
