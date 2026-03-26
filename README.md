@@ -61,7 +61,7 @@ Customer dashboard auto-refreshes within ~60 seconds.
 Open `edit.html`, find this line near the top of the `<script>` block:
 
 ```js
-const ACCESS_PW = 'boffo2024';
+const ACCESS_PW = '';
 ```
 
 Change `boffo2024` to whatever you want, then push.
