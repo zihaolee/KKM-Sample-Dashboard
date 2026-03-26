@@ -1,39 +1,138 @@
 {
-  "updated": "",
-  "updated_by": "",
+  "updated": "2026-03-26T08:08:34.971Z",
+  "updated_by": "Boffo Sdn Bhd",
   "locations": {
-    "1":  {"installed": 0, "notes": ""},
-    "2":  {"installed": 0, "notes": ""},
-    "3":  {"installed": 0, "notes": ""},
-    "4":  {"installed": 0, "notes": ""},
-    "5":  {"installed": 0, "notes": ""},
-    "6":  {"installed": 0, "notes": ""},
-    "7":  {"installed": 0, "notes": ""},
-    "8":  {"installed": 0, "notes": ""},
-    "9":  {"installed": 0, "notes": ""},
-    "10": {"installed": 0, "notes": ""},
-    "11": {"installed": 0, "notes": ""},
-    "12": {"installed": 0, "notes": ""},
-    "13": {"installed": 0, "notes": ""},
-    "14": {"installed": 0, "notes": ""},
-    "15": {"installed": 0, "notes": ""},
-    "16": {"installed": 0, "notes": ""},
-    "17": {"installed": 0, "notes": ""},
-    "18": {"installed": 0, "notes": ""},
-    "19": {"installed": 0, "notes": ""},
-    "20": {"installed": 0, "notes": ""},
-    "21": {"installed": 0, "notes": ""},
-    "22": {"installed": 0, "notes": ""},
-    "23": {"installed": 0, "notes": ""},
-    "24": {"installed": 0, "notes": ""},
-    "25": {"installed": 0, "notes": ""},
-    "26": {"installed": 0, "notes": ""},
-    "27": {"installed": 0, "notes": ""},
-    "28": {"installed": 0, "notes": ""},
-    "29": {"installed": 0, "notes": ""},
-    "30": {"installed": 0, "notes": ""},
-    "31": {"installed": 0, "notes": ""},
-    "32": {"installed": 0, "notes": ""},
-    "33": {"installed": 0, "notes": ""}
+    "1": {
+      "installed": 3,
+      "notes": ""
+    },
+    "2": {
+      "installed": 0,
+      "notes": ""
+    },
+    "3": {
+      "installed": 0,
+      "notes": ""
+    },
+    "4": {
+      "installed": 0,
+      "notes": ""
+    },
+    "5": {
+      "installed": 0,
+      "notes": ""
+    },
+    "6": {
+      "installed": 0,
+      "notes": ""
+    },
+    "7": {
+      "installed": 0,
+      "notes": ""
+    },
+    "8": {
+      "installed": 0,
+      "notes": ""
+    },
+    "9": {
+      "installed": 0,
+      "notes": ""
+    },
+    "10": {
+      "installed": 0,
+      "notes": ""
+    },
+    "11": {
+      "installed": 0,
+      "notes": ""
+    },
+    "12": {
+      "installed": 0,
+      "notes": ""
+    },
+    "13": {
+      "installed": 0,
+      "notes": ""
+    },
+    "14": {
+      "installed": 0,
+      "notes": ""
+    },
+    "15": {
+      "installed": 0,
+      "notes": ""
+    },
+    "16": {
+      "installed": 0,
+      "notes": ""
+    },
+    "17": {
+      "installed": 0,
+      "notes": ""
+    },
+    "18": {
+      "installed": 0,
+      "notes": ""
+    },
+    "19": {
+      "installed": 0,
+      "notes": ""
+    },
+    "20": {
+      "installed": 0,
+      "notes": ""
+    },
+    "21": {
+      "installed": 0,
+      "notes": ""
+    },
+    "22": {
+      "installed": 0,
+      "notes": ""
+    },
+    "23": {
+      "installed": 0,
+      "notes": ""
+    },
+    "24": {
+      "installed": 0,
+      "notes": ""
+    },
+    "25": {
+      "installed": 0,
+      "notes": ""
+    },
+    "26": {
+      "installed": 0,
+      "notes": ""
+    },
+    "27": {
+      "installed": 0,
+      "notes": ""
+    },
+    "28": {
+      "installed": 0,
+      "notes": ""
+    },
+    "29": {
+      "installed": 0,
+      "notes": ""
+    },
+    "30": {
+      "installed": 0,
+      "notes": ""
+    },
+    "31": {
+      "installed": 0,
+      "notes": ""
+    },
+    "32": {
+      "installed": 0,
+      "notes": ""
+    },
+    "33": {
+      "installed": 0,
+      "notes": ""
+    }
   }
 }
