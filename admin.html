@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KKM Deployment — Admin Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ─────────────────────────────────────────── */
+:root {
+  --bg:        #0f1117;
+  --surface:   #181c25;
+  --surface2:  #1e2333;
+  --border:    #2a2f3d;
+  --border2:   #363c50;
+  --text:      #e8eaf0;
+  --muted:     #6b7280;
+  --muted2:    #9ca3af;
+  --accent:    #3b82f6;
+  --accent-d:  #1d4ed8;
+  --accent-bg: rgba(59,130,246,0.10);
+  --green:     #22c55e;
+  --green-bg:  rgba(34,197,94,0.10);
+  --amber:     #f59e0b;
+  --amber-bg:  rgba(245,158,11,0.10);
+  --red:       #ef4444;
+  --red-bg:    rgba(239,68,68,0.10);
+  --mono:      'IBM Plex Mono', monospace;
+  --sans:      'DM Sans', sans-serif;
+  --radius:    8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ── LOGIN ──────────────────────────────────────────── */
+#login-screen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; z-index: 200;
+}
+.login-wrap {
+  width: 360px; text-align: center;
+}
+.login-logo {
+  width: 48px; height: 48px; background: var(--accent); border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; margin: 0 auto 20px;
+}
+.login-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+.login-sub   { font-size: 13px; color: var(--muted2); margin-bottom: 28px; }
+.login-card  {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 28px;
+}
+.login-label { font-size: 11px; font-family: var(--mono); letter-spacing: 0.06em; color: var(--muted2); text-align: left; display: block; margin-bottom: 6px; text-transform: uppercase; }
+.login-input {
+  width: 100%; background: var(--bg); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 10px 14px; font-size: 14px;
+  font-family: var(--sans); color: var(--text); outline: none;
+  letter-spacing: 0.08em; margin-bottom: 14px; text-align: center;
+  transition: border-color 0.15s;
+}
+.login-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.login-btn {
+  width: 100%; background: var(--accent); color: #fff; border: none;
+  border-radius: var(--radius); padding: 11px; font-size: 14px;
+  font-family: var(--sans); font-weight: 600; cursor: pointer; transition: background 0.15s;
+}
+.login-btn:hover { background: var(--accent-d); }
+.login-err { font-size: 12px; color: var(--red); margin-top: 10px; display: none; font-family: var(--mono); }
+
+/* ── NAV ─────────────────────────────────────────────── */
+nav {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 0 28px; display: flex; align-items: center;
+  justify-content: space-between; height: 54px; position: sticky; top: 0; z-index: 10;
+}
+.nav-left  { display: flex; align-items: center; gap: 16px; }
+.nav-brand { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text); }
+.nav-pill  {
+  background: var(--accent-bg); color: var(--accent); border: 1px solid rgba(59,130,246,0.25);
+  border-radius: 20px; font-size: 10px; font-family: var(--mono); font-weight: 600;
+  letter-spacing: 0.06em; padding: 2px 10px; text-transform: uppercase;
+}
+.nav-right { display: flex; align-items: center; gap: 12px; }
+.nav-link  { font-size: 12px; color: var(--muted2); text-decoration: none; font-family: var(--mono); transition: color 0.15s; }
+.nav-link:hover { color: var(--text); }
+.nav-sync  {
+  display: flex; align-items: center; gap: 6px; font-size: 11px;
+  font-family: var(--mono); color: var(--muted);
+}
+.sync-dot  {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── LAYOUT ──────────────────────────────────────────── */
+.shell { display: flex; min-height: calc(100vh - 54px); }
+
+/* Sidebar */
+.sidebar {
+  width: 220px; flex-shrink: 0; background: var(--surface);
+  border-right: 1px solid var(--border); padding: 16px 0;
+  position: sticky; top: 54px; height: calc(100vh - 54px); overflow-y: auto;
+}
+.sidebar-section { padding: 0 12px; margin-bottom: 4px; }
+.sidebar-label {
+  font-size: 9px; font-family: var(--mono); letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted); padding: 8px 8px 4px;
+}
+.sidebar-btn {
+  width: 100%; text-align: left; background: none; border: none;
+  padding: 7px 10px; border-radius: 6px; font-size: 12px; font-family: var(--sans);
+  color: var(--muted2); cursor: pointer; display: flex; align-items: center;
+  gap: 8px; transition: all 0.1s; white-space: nowrap; overflow: hidden;
+}
+.sidebar-btn:hover { background: var(--surface2); color: var(--text); }
+.sidebar-btn.active { background: var(--accent-bg); color: var(--accent); font-weight: 500; }
+.sidebar-btn .sb-count {
+  margin-left: auto; font-family: var(--mono); font-size: 10px;
+  background: var(--surface2); color: var(--muted2); padding: 1px 6px; border-radius: 10px;
+}
+.sidebar-btn.active .sb-count { background: var(--accent-bg); color: var(--accent); }
+.sidebar-divider { height: 1px; background: var(--border); margin: 8px 12px; }
+
+/* Main content */
+.main { flex: 1; padding: 24px 28px; min-width: 0; }
+
+/* ── STATS ROW ───────────────────────────────────────── */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+.stat {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px;
+}
+.stat-label { font-size: 10px; font-family: var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.stat-val   { font-size: 26px; font-weight: 700; line-height: 1; color: var(--text); }
+.stat-sub   { font-size: 11px; color: var(--muted2); margin-top: 4px; }
+.stat.hi    { border-color: rgba(59,130,246,0.3); background: var(--accent-bg); }
+.stat.hi .stat-val { color: var(--accent); }
+
+/* ── TOOLBAR ─────────────────────────────────────────── */
+.toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.tb-input {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 8px 12px; font-size: 13px; font-family: var(--sans); color: var(--text); outline: none;
+  transition: border-color 0.15s; flex: 1; min-width: 180px;
+}
+.tb-input:focus { border-color: var(--accent); }
+.tb-select {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 8px 12px; font-size: 13px; font-family: var(--sans); color: var(--text); outline: none;
+}
+.tb-label { font-size: 11px; font-family: var(--mono); color: var(--muted); white-space: nowrap; }
+
+/* ── TABLE ───────────────────────────────────────────── */
+.table-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+}
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  background: var(--surface2); padding: 9px 14px; text-align: left;
+  font-size: 10px; font-family: var(--mono); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--muted); font-weight: 500;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+tbody td { padding: 8px 14px; vertical-align: middle; }
+
+/* ── BADGES ──────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 600;
+  font-family: var(--mono); letter-spacing: 0.04em; white-space: nowrap;
+}
+.badge::before { content:''; width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+.badge.complete   { background: var(--green-bg); color: var(--green); }
+.badge.complete::before   { background: var(--green); }
+.badge.inprogress { background: var(--amber-bg); color: var(--amber); }
+.badge.inprogress::before { background: var(--amber); }
+.badge.pending    { background: var(--surface2); color: var(--muted2); }
+.badge.pending::before    { background: var(--muted); }
+
+/* ── INLINE EDITOR ───────────────────────────────────── */
+.qty-ctrl { display: flex; align-items: center; justify-content: center; gap: 5px; }
+.adj-btn {
+  width: 24px; height: 24px; border: 1px solid var(--border2); border-radius: 5px;
+  background: var(--surface2); cursor: pointer; font-size: 14px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text); transition: all 0.1s;
+}
+.adj-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.qty-input {
+  width: 52px; font-family: var(--mono); font-size: 13px; text-align: center;
+  border: 1px solid var(--border2); border-radius: 5px; padding: 3px 6px;
+  background: var(--bg); color: var(--text); outline: none; transition: border-color 0.15s;
+}
+.qty-input:focus { border-color: var(--accent); }
+.of-label { font-size: 10px; color: var(--muted); font-family: var(--mono); text-align: center; margin-top: 2px; }
+
+.note-input {
+  width: 100%; border: 1px solid var(--border2); border-radius: 5px;
+  padding: 4px 8px; font-size: 11px; font-family: var(--sans); color: var(--text);
+  background: var(--bg); resize: none; height: 30px; outline: none; transition: border-color 0.15s;
+}
+.note-input:focus { border-color: var(--accent); }
+
+/* Save button per row */
+.save-row-btn {
+  padding: 4px 12px; background: var(--accent); color: #fff; border: none;
+  border-radius: 5px; font-size: 11px; font-family: var(--mono); font-weight: 600;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.save-row-btn:hover   { background: var(--accent-d); }
+.save-row-btn:disabled{ background: var(--surface2); color: var(--muted); cursor: default; }
+.save-row-btn.saved   { background: var(--green-bg); color: var(--green); }
+
+/* ── PROGRESS BAR ────────────────────────────────────── */
+.prog-wrap { min-width: 90px; }
+.prog-track { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+.prog-fill  { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.3s; }
+.prog-fill.done { background: var(--green); }
+.prog-pct   { font-size: 10px; font-family: var(--mono); color: var(--muted2); margin-top: 3px; }
+
+/* ── PHOTO CELL ──────────────────────────────────────── */
+.photo-cell { min-width: 130px; }
+.photo-upload-btn {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px;
+  border: 1px dashed var(--border2); border-radius: 5px; font-size: 11px;
+  color: var(--muted2); cursor: pointer; background: var(--bg);
+  transition: all 0.15s; white-space: nowrap; font-family: var(--mono);
+}
+.photo-upload-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.photo-thumbs { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.thumb-wrap {
+  position: relative; width: 36px; height: 36px;
+  border-radius: 4px; overflow: hidden; border: 1px solid var(--border2); flex-shrink: 0;
+}
+.thumb-wrap img { width:100%; height:100%; object-fit:cover; cursor:pointer; display:block; }
+.thumb-del {
+  position: absolute; top: 1px; right: 1px; width: 13px; height: 13px;
+  background: rgba(0,0,0,0.7); border: none; border-radius: 2px; color: #fff;
+  font-size: 9px; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; padding: 0;
+}
+.thumb-del:hover { background: var(--red); }
+.photo-count { font-size: 10px; font-family: var(--mono); color: var(--muted); margin-top: 2px; }
+
+/* ── TOASTS ──────────────────────────────────────────── */
+#toast-container {
+  position: fixed; bottom: 24px; right: 24px; z-index: 300;
+  display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+}
+.toast {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 10px 16px; font-size: 12px; font-family: var(--mono);
+  color: var(--text); display: flex; align-items: center; gap: 8px;
+  animation: slideIn 0.2s ease; pointer-events: all;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.toast.ok  { border-color: rgba(34,197,94,0.3); }
+.toast.ok  .toast-dot { background: var(--green); }
+.toast.err { border-color: rgba(239,68,68,0.3); }
+.toast.err .toast-dot { background: var(--red); }
+.toast-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+@keyframes slideIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+
+/* ── LIGHTBOX ────────────────────────────────────────── */
+#lightbox {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+  z-index: 400; display: none; align-items: center; justify-content: center; flex-direction: column;
+}
+#lightbox.open { display: flex; }
+#lb-img { max-width: 88vw; max-height: 78vh; border-radius: 6px; object-fit: contain; }
+#lb-caption { color: rgba(255,255,255,0.45); font-size: 11px; font-family: var(--mono); margin-top: 10px; }
+#lb-close { position: absolute; top: 18px; right: 22px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 26px; cursor: pointer; }
+#lb-close:hover { color: #fff; }
+#lb-nav { display: flex; gap: 10px; margin-top: 12px; }
+.lb-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: #fff; padding: 6px 18px; font-size: 12px; cursor: pointer; font-family: var(--mono); }
+.lb-btn:hover { background: rgba(255,255,255,0.2); }
+
+/* ── LOADING OVERLAY ─────────────────────────────────── */
+#loading-overlay {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 150; flex-direction: column; gap: 12px;
+}
+.loader { width: 32px; height: 32px; border: 3px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.load-text { font-size: 12px; font-family: var(--mono); color: var(--muted); }
+
+/* ── CONFIG BANNER ───────────────────────────────────── */
+#config-banner {
+  background: var(--amber-bg); border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 8px; padding: 10px 16px; font-size: 12px; color: var(--amber);
+  margin-bottom: 16px; font-family: var(--mono); display: none; line-height: 1.6;
+}
+#config-banner a { color: var(--amber); }
+
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .stats-row { grid-template-columns: repeat(2,1fr); }
+}
+@media (max-width: 600px) {
+  .stats-row { grid-template-columns: 1fr; }
+  .main { padding: 16px; }
+  nav { padding: 0 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-overlay">
+  <div class="loader"></div>
+  <div class="load-text">Connecting to database...</div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen" style="display:none">
+  <div class="login-wrap">
+    <div class="login-logo">🏥</div>
+    <div class="login-title">KKM Deployment Admin</div>
+    <div class="login-sub">Internal access — Aspek Tumpuan Sdn Bhd</div>
+    <div class="login-card">
+      <label class="login-label">Password</label>
+      <input type="password" class="login-input" id="pw-input" placeholder="••••••••••"
+        onkeydown="if(event.key==='Enter')checkPw()">
+      <button class="login-btn" onclick="checkPw()">Enter Admin Portal</button>
+      <div class="login-err" id="pw-err">Incorrect password</div>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox">
+  <button id="lb-close" onclick="closeLb()">×</button>
+  <img id="lb-img" src="" alt="">
+  <div id="lb-caption"></div>
+  <div id="lb-nav">
+    <button class="lb-btn" onclick="lbNav(-1)">← Prev</button>
+    <button class="lb-btn" onclick="lbOpenFull()" style="background:rgba(59,130,246,0.2);border-color:rgba(59,130,246,0.4)">⤢ Full size</button>
+    <button class="lb-btn" onclick="lbNav(1)">Next →</button>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div id="toast-container"></div>
+
+<!-- MAIN APP (hidden until authed) -->
+<div id="app" style="display:none">
+
+<nav>
+  <div class="nav-left">
+    <div class="nav-brand">KKM Deployment</div>
+    <span class="nav-pill">Admin</span>
+  </div>
+  <div class="nav-right">
+    <div class="nav-sync"><div class="sync-dot"></div><span id="sync-label">Live</span></div>
+    <a href="index.html" class="nav-link">← Dashboard</a>
+  </div>
+</nav>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-label">Filter by State</div>
+    <div class="sidebar-section" id="state-nav"></div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-label">Filter by Status</div>
+    <div class="sidebar-section">
+      <button class="sidebar-btn active" onclick="filterStatus('',this)">All Sites <span class="sb-count" id="sc-all">33</span></button>
+      <button class="sidebar-btn" onclick="filterStatus('complete',this)">✓ Complete <span class="sb-count" id="sc-complete">0</span></button>
+      <button class="sidebar-btn" onclick="filterStatus('inprogress',this)">◑ In Progress <span class="sb-count" id="sc-inprogress">0</span></button>
+      <button class="sidebar-btn" onclick="filterStatus('pending',this)">○ Pending <span class="sb-count" id="sc-pending">0</span></button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div id="config-banner">
+      ⚠ Apps Script URL not configured. Open <strong>admin.html</strong> and set <code>SCRIPT_URL</code> at the top of the &lt;script&gt;.
+      See <a href="#" onclick="return false">setup instructions</a> in README.
+    </div>
+
+    <div class="stats-row" id="stats-row">
+      <div class="stat hi"><div class="stat-label">Overall</div><div class="stat-val" id="s-pct">—</div><div class="stat-sub" id="s-prog">loading...</div></div>
+      <div class="stat"><div class="stat-label">Complete</div><div class="stat-val" id="s-done">—</div><div class="stat-sub">of 33 sites</div></div>
+      <div class="stat"><div class="stat-label">In Progress</div><div class="stat-val" id="s-prog2">—</div><div class="stat-sub">sites active</div></div>
+      <div class="stat"><div class="stat-label">Switches Left</div><div class="stat-val" id="s-left">—</div><div class="stat-sub">to install</div></div>
+    </div>
+
+    <div class="toolbar">
+      <span class="tb-label">Search:</span>
+      <input class="tb-input" type="text" id="search" placeholder="Filter by facility name..." oninput="renderTable()">
+      <button onclick="saveAll()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:12px;font-family:var(--mono);font-weight:600;cursor:pointer;white-space:nowrap">
+        ↑ Save All Changes
+      </button>
+      <button onclick="loadData()" style="padding:8px 14px;background:var(--surface2);color:var(--muted2);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--mono);cursor:pointer">
+        ↺ Refresh
+      </button>
+    </div>
+
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:32px">#</th>
+            <th>Facility</th>
+            <th>State</th>
+            <th style="text-align:center;width:52px">Total</th>
+            <th style="text-align:center;min-width:150px">Installed</th>
+            <th style="min-width:80px">Progress</th>
+            <th style="width:100px">Status</th>
+            <th>Notes</th>
+            <th style="min-width:140px">Photos</th>
+            <th style="width:70px"></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-top:10px;text-align:right" id="last-sync"></div>
+  </main>
+</div>
+</div><!-- #app -->
+
+<script>
+// ════════════════════════════════════════════════════════
+//  ★ CONFIGURE THIS — paste your Apps Script Web App URL
+// ════════════════════════════════════════════════════════
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGA_WlbOapOR28CaFCvopzAZ3uZa65MuQRTiOAwAsFw4mygHNXBuD_0juu8YAFQFAvCQ/exec';
+// ════════════════════════════════════════════════════════
+
+const ADMIN_PW = 'aspek2026!';
+const TOTAL_QTY = 320;
+
+const LOCATIONS = [
+  {id:1,  state:"WP Putrajaya",  facility:"Bahagian Pengurusan Maklumat, Kompleks E", qty:17},
+  {id:2,  state:"Selangor",      facility:"Makmal Kesihatan Awam Kebangsaan Sungai Buloh", qty:11},
+  {id:3,  state:"Selangor",      facility:"Hospital Banting", qty:13},
+  {id:4,  state:"Selangor",      facility:"Hospital Tengku Ampuan Rahimah", qty:20},
+  {id:5,  state:"Selangor",      facility:"Hospital Orang Asli Gombak", qty:5},
+  {id:6,  state:"Johor",         facility:"Hospital Sultanah Aminah", qty:13},
+  {id:7,  state:"Johor",         facility:"Hospital Pakar Sultanah Fatimah", qty:9},
+  {id:8,  state:"Johor",         facility:"Hospital Sultanah Nora Ismail", qty:14},
+  {id:9,  state:"Johor",         facility:"Hospital Tangkak", qty:8},
+  {id:10, state:"Johor",         facility:"Hospital Kota Tinggi", qty:8},
+  {id:11, state:"Johor",         facility:"Hospital Permai", qty:10},
+  {id:12, state:"Johor",         facility:"Hospital Temenggong Seri Maharaja Tun Ibrahim", qty:10},
+  {id:13, state:"Kedah",         facility:"Hospital Kulim", qty:13},
+  {id:14, state:"Kedah",         facility:"Hospital Baling", qty:5},
+  {id:15, state:"Kedah",         facility:"Hospital Sultanah Maliha, Langkawi", qty:6},
+  {id:16, state:"Kedah",         facility:"Pejabat Kesihatan Daerah Kota Setar", qty:3},
+  {id:17, state:"Kedah",         facility:"Kolej Kejururawatan Alor Setar", qty:3},
+  {id:18, state:"Kelantan",      facility:"Hospital Tanah Merah", qty:2},
+  {id:19, state:"Kelantan",      facility:"Hospital Pasir Mas", qty:5},
+  {id:20, state:"Melaka",        facility:"Jabatan Kesihatan Negeri Melaka", qty:16},
+  {id:21, state:"Melaka",        facility:"Hospital Melaka", qty:19},
+  {id:22, state:"Melaka",        facility:"Hospital Alor Gajah", qty:5},
+  {id:23, state:"Melaka",        facility:"Hospital Jasin", qty:17},
+  {id:24, state:"Pahang",        facility:"Hospital Tengku Ampuan Afzan", qty:15},
+  {id:25, state:"Pahang",        facility:"Hospital Bentong", qty:10},
+  {id:26, state:"Pahang",        facility:"Hospital Jengka", qty:10},
+  {id:27, state:"Pahang",        facility:"Hospital Jerantut", qty:10},
+  {id:28, state:"Perak",         facility:"Hospital Raja Perempuan Bainun", qty:4},
+  {id:29, state:"Perak",         facility:"Makmal Kesihatan Awam Kebangsaan Ipoh", qty:5},
+  {id:30, state:"Perak",         facility:"Kolej Sains Kesihatan Bersekutu Sultan Azlan Shah", qty:11},
+  {id:31, state:"Perlis",        facility:"Pejabat Kesihatan Daerah Perlis", qty:2},
+  {id:32, state:"Pulau Pinang",  facility:"Hospital Pulau Pinang", qty:13},
+  {id:33, state:"Pulau Pinang",  facility:"Hospital Seberang Jaya", qty:8},
+];
+
+// ── State ─────────────────────────────────────────────────────────────────
+let REMOTE   = {};   // data from Sheets (source of truth on load)
+let LOCAL    = {};   // working copy (unsaved edits)
+let activeState  = '';
+let activeStatus = '';
+let authed   = false;
+
+// ── Auth ──────────────────────────────────────────────────────────────────
+function checkPw() {
+  if (document.getElementById('pw-input').value === ADMIN_PW) {
+    authed = true;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadData();
+  } else {
+    document.getElementById('pw-err').style.display = 'block';
+    document.getElementById('pw-input').value = '';
+  }
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+window.onload = () => {
+  if (SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('login-screen').style.display   = 'flex';
+    // Will show config banner after login
+    return;
+  }
+  // Try to auto-login from sessionStorage
+  const saved = sessionStorage.getItem('kkm_admin_auth');
+  if (saved === ADMIN_PW) {
+    authed = true;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadData();
+  } else {
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('login-screen').style.display   = 'flex';
+  }
+};
+
+// ── Data load ─────────────────────────────────────────────────────────────
+async function loadData() {
+  document.getElementById('sync-label').textContent = 'Syncing…';
+  if (SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('config-banner').style.display = 'block';
+    buildSidebar(); renderTable(); updateStats();
+    return;
+  }
+  try {
+    const res  = await fetch(SCRIPT_URL + '?t=' + Date.now());
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    REMOTE = data.locations || {};
+    // Merge remote into LOCAL (keep local unsaved edits if present)
+    LOCATIONS.forEach(l => {
+      const id = String(l.id);
+      if (!LOCAL[id]) {
+        LOCAL[id] = {
+          installed: REMOTE[id]?.installed || 0,
+          notes:     REMOTE[id]?.notes || '',
+          photos:    REMOTE[id]?.photos || []
+        };
+      }
+    });
+    document.getElementById('last-sync').textContent = 'Last synced: ' + new Date().toLocaleTimeString('en-MY');
+    document.getElementById('sync-label').textContent = 'Live';
+    sessionStorage.setItem('kkm_admin_auth', ADMIN_PW);
+  } catch(e) {
+    toast('Failed to load: ' + e.message, 'err');
+    document.getElementById('sync-label').textContent = 'Offline';
+    // Fall back to empty LOCAL
+    LOCATIONS.forEach(l => {
+      const id = String(l.id);
+      if (!LOCAL[id]) LOCAL[id] = { installed: 0, notes: '', photos: [] };
+    });
+  }
+  document.getElementById('loading-overlay').style.display = 'none';
+  buildSidebar();
+  renderTable();
+  updateStats();
+}
+
+// ── Save single row (count + notes only — photos handled separately) ──────
+async function saveRow(id) {
+  const btn = document.getElementById('save-btn-' + id);
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  syncInputs(id);
+  try {
+    const res  = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        password:  ADMIN_PW,
+        action:    'update',
+        id:        id,
+        installed: LOCAL[String(id)].installed,
+        notes:     LOCAL[String(id)].notes
+        // photos are NOT sent here — they are uploaded individually via uploadPhoto()
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    REMOTE[String(id)] = { ...LOCAL[String(id)] };
+    if (btn) { btn.classList.add('saved'); btn.textContent = '✓ Saved'; setTimeout(()=>{ btn.classList.remove('saved'); btn.textContent = 'Save'; btn.disabled = false; }, 2000); }
+    updateStats();
+    toast('Site #' + id + ' saved', 'ok');
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+    toast('Save failed: ' + e.message, 'err');
+  }
+}
+
+// ── Save all dirty rows ───────────────────────────────────────────────────
+async function saveAll() {
+  syncAllInputs();
+  const dirty = LOCATIONS.filter(l => {
+    const id = String(l.id);
+    const r  = REMOTE[id] || {};
+    const lc = LOCAL[id]  || {};
+    return lc.installed !== r.installed || lc.notes !== r.notes;
+  });
+  if (!dirty.length) { toast('No unsaved changes', 'ok'); return; }
+  try {
+    const res  = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        password: ADMIN_PW,
+        action:   'bulk_update',
+        updates:  dirty.map(l => ({
+          id:        l.id,
+          installed: LOCAL[String(l.id)].installed,
+          notes:     LOCAL[String(l.id)].notes
+          // photos excluded — uploaded separately
+        }))
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    dirty.forEach(l => { REMOTE[String(l.id)] = { ...LOCAL[String(l.id)] }; });
+    toast(`Saved ${dirty.length} site${dirty.length > 1 ? 's' : ''}`, 'ok');
+    updateStats();
+  } catch(e) {
+    toast('Bulk save failed: ' + e.message, 'err');
+  }
+}
+
+// ── Sync inputs → LOCAL ───────────────────────────────────────────────────
+function syncInputs(id) {
+  const vEl = document.getElementById('v-' + id);
+  const nEl = document.getElementById('n-' + id);
+  if (!LOCAL[String(id)]) LOCAL[String(id)] = { installed: 0, notes: '', photos: [] };
+  if (vEl) LOCAL[String(id)].installed = Math.max(0, Math.min(LOCATIONS.find(l=>l.id===id).qty, parseInt(vEl.value)||0));
+  if (nEl) LOCAL[String(id)].notes = nEl.value.trim();
+}
+function syncAllInputs() { LOCATIONS.forEach(l => syncInputs(l.id)); }
+
+// ── Sidebar ───────────────────────────────────────────────────────────────
+function buildSidebar() {
+  const states = [...new Set(LOCATIONS.map(l => l.state))].sort();
+  const nav = document.getElementById('state-nav');
+  nav.innerHTML = `<button class="sidebar-btn ${!activeState?'active':''}" onclick="filterState('',this)">All States</button>`;
+  states.forEach(s => {
+    const count = LOCATIONS.filter(l => l.state === s).length;
+    nav.innerHTML += `<button class="sidebar-btn ${activeState===s?'active':''}" onclick="filterState('${s}',this)">${s} <span class="sb-count">${count}</span></button>`;
+  });
+}
+
+function filterState(s, el) {
+  activeState = s;
+  document.querySelectorAll('.sidebar-section .sidebar-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderTable();
+}
+function filterStatus(s, el) {
+  activeStatus = s;
+  document.querySelectorAll('.sidebar-section:last-of-type .sidebar-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderTable();
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────
+function updateStats() {
+  let inst = 0, done = 0, prog = 0;
+  LOCATIONS.forEach(l => {
+    const v = LOCAL[String(l.id)]?.installed || 0;
+    inst += v;
+    const s = getStatus(l.qty, v);
+    if (s === 'complete') done++;
+    else if (s === 'inprogress') prog++;
+  });
+  const pct = Math.round((inst / TOTAL_QTY) * 100);
+  document.getElementById('s-pct').textContent   = pct + '%';
+  document.getElementById('s-prog').textContent  = inst + ' / ' + TOTAL_QTY + ' switches';
+  document.getElementById('s-done').textContent  = done;
+  document.getElementById('s-prog2').textContent = prog;
+  document.getElementById('s-left').textContent  = TOTAL_QTY - inst;
+  document.getElementById('sc-all').textContent  = 33;
+  document.getElementById('sc-complete').textContent   = done;
+  document.getElementById('sc-inprogress').textContent = prog;
+  document.getElementById('sc-pending').textContent    = 33 - done - prog;
+}
+
+// ── Table render ──────────────────────────────────────────────────────────
+function getStatus(qty, inst) { if (!inst) return 'pending'; if (inst >= qty) return 'complete'; return 'inprogress'; }
+function badge(s) { const L = { complete:'Complete', inprogress:'In Progress', pending:'Pending' }; return `<span class="badge ${s}">${L[s]}</span>`; }
+
+function renderTable() {
+  const search = (document.getElementById('search')?.value || '').toLowerCase();
+  const rows = LOCATIONS.filter(l => {
+    if (activeState && l.state !== activeState) return false;
+    if (search && !l.facility.toLowerCase().includes(search)) return false;
+    const inst = LOCAL[String(l.id)]?.installed || 0;
+    if (activeStatus && getStatus(l.qty, inst) !== activeStatus) return false;
+    return true;
+  });
+
+  document.getElementById('tbody').innerHTML = rows.map(l => {
+    const lc     = LOCAL[String(l.id)] || { installed: 0, notes: '', photos: [] };
+    const v      = lc.installed;
+    const s      = getStatus(l.qty, v);
+    const pct    = Math.round((v / l.qty) * 100);
+    const photos = lc.photos || [];
+    const thumbs = photos.map((p, i) => `
+      <div class="thumb-wrap">
+        <img src="${p.thumb || p.url || p.data || ''}" title="${p.name}" onclick="openLb(${l.id},${i})" onerror="this.src='${p.url||''}'">
+        <button class="thumb-del" onclick="delPhoto(${l.id},'${p.id}')">×</button>
+      </div>`).join('');
+
+    return `<tr id="row-${l.id}">
+      <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${l.id}</td>
+      <td style="font-weight:500;max-width:220px">${l.facility}</td>
+      <td style="font-size:11px;color:var(--muted2)">${l.state}</td>
+      <td style="font-family:var(--mono);text-align:center;color:var(--muted2)">${l.qty}</td>
+      <td>
+        <div class="qty-ctrl">
+          <button class="adj-btn" onclick="adj(${l.id},-1)">−</button>
+          <input class="qty-input" type="number" min="0" max="${l.qty}" value="${v}" id="v-${l.id}" oninput="live(${l.id})">
+          <button class="adj-btn" onclick="adj(${l.id},1)">+</button>
+        </div>
+        <div class="of-label">of ${l.qty}</div>
+      </td>
+      <td>
+        <div class="prog-wrap">
+          <div class="prog-track"><div class="prog-fill ${s==='complete'?'done':''}" id="pf-${l.id}" style="width:${pct}%"></div></div>
+          <div class="prog-pct" id="pp-${l.id}">${pct}%</div>
+        </div>
+      </td>
+      <td id="st-${l.id}">${badge(s)}</td>
+      <td><textarea class="note-input" id="n-${l.id}" placeholder="Notes...">${lc.notes}</textarea></td>
+      <td class="photo-cell">
+        <label class="photo-upload-btn">
+          📷 Add
+          <input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(${l.id},this)">
+        </label>
+        <div class="photo-thumbs" id="thumbs-${l.id}">${thumbs}</div>
+        ${photos.length ? `<div class="photo-count" id="pc-${l.id}">${photos.length} photo${photos.length>1?'s':''}</div>` : `<div class="photo-count" id="pc-${l.id}"></div>`}
+      </td>
+      <td>
+        <button class="save-row-btn" id="save-btn-${l.id}" onclick="saveRow(${l.id})">Save</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Qty controls ──────────────────────────────────────────────────────────
+function adj(id, d) {
+  const inp = document.getElementById('v-' + id); if (!inp) return;
+  const loc = LOCATIONS.find(l => l.id === id);
+  inp.value = Math.max(0, Math.min(loc.qty, (parseInt(inp.value) || 0) + d));
+  live(id);
+}
+function live(id) {
+  const inp = document.getElementById('v-' + id);
+  const loc = LOCATIONS.find(l => l.id === id); if (!inp || !loc) return;
+  const v = Math.max(0, Math.min(loc.qty, parseInt(inp.value) || 0));
+  inp.value = v;
+  if (!LOCAL[String(id)]) LOCAL[String(id)] = { installed: 0, notes: '', photos: [] };
+  LOCAL[String(id)].installed = v;
+  const pct = Math.round((v / loc.qty) * 100);
+  const s   = getStatus(loc.qty, v);
+  const pf  = document.getElementById('pf-' + id);
+  const pp  = document.getElementById('pp-' + id);
+  const st  = document.getElementById('st-' + id);
+  if (pf) { pf.style.width = pct + '%'; pf.className = 'prog-fill ' + (s === 'complete' ? 'done' : ''); }
+  if (pp) pp.textContent = pct + '%';
+  if (st) st.innerHTML = badge(s);
+  updateStats();
+}
+
+// ── Photos — upload to Drive via Apps Script ──────────────────────────────
+function compressToBase64(file, maxPx, quality) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxPx || h > maxPx) {
+          if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
+          else       { w = Math.round(w * maxPx / h); h = maxPx; }
+        }
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        // Return pure base64 (no data URI prefix)
+        resolve(c.toDataURL('image/jpeg', quality).split(',')[1]);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handlePhotos(id, input) {
+  const sid   = String(id);
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  input.value = '';
+
+  // Show uploading state
+  const thumbEl = document.getElementById('thumbs-' + id);
+  const uploadingEl = document.createElement('div');
+  uploadingEl.style.cssText = 'font-size:11px;font-family:var(--mono);color:var(--amber);margin-top:4px;';
+  uploadingEl.textContent = 'Uploading ' + files.length + ' photo' + (files.length > 1 ? 's' : '') + '…';
+  if (thumbEl) thumbEl.after(uploadingEl);
+
+  let uploaded = 0;
+  for (const file of files) {
+    try {
+      const b64 = await compressToBase64(file, 1200, 0.80);
+      const res  = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          password:  ADMIN_PW,
+          action:    'upload_photo',
+          site_id:   id,
+          file_name: 'site' + id + '_' + Date.now() + '.jpg',
+          mime_type: 'image/jpeg',
+          data:      b64
+        })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error);
+      // Store Drive URL in LOCAL
+      if (!LOCAL[sid]) LOCAL[sid] = { installed: 0, notes: '', photos: [] };
+      LOCAL[sid].photos.push({ id: data.file_id, name: file.name, url: data.url, thumb: data.thumb });
+      uploaded++;
+    } catch(e) {
+      toast('Upload failed for ' + file.name + ': ' + e.message, 'err');
+    }
+  }
+
+  uploadingEl.remove();
+  refreshPhotoCell(id);
+  if (uploaded) toast(uploaded + ' photo' + (uploaded > 1 ? 's' : '') + ' uploaded to Drive', 'ok');
+}
+
+async function delPhoto(id, fileId) {
+  if (!confirm('Delete this photo? It will be removed from Drive.')) return;
+  const sid = String(id);
+  try {
+    const res  = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ password: ADMIN_PW, action: 'delete_photo', site_id: id, file_id: fileId })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    if (LOCAL[sid]?.photos) {
+      LOCAL[sid].photos = LOCAL[sid].photos.filter(p => p.id !== fileId);
+    }
+    refreshPhotoCell(id);
+    toast('Photo deleted', 'ok');
+  } catch(e) {
+    toast('Delete failed: ' + e.message, 'err');
+  }
+}
+
+function refreshPhotoCell(id) {
+  const photos  = LOCAL[String(id)]?.photos || [];
+  const thumbEl = document.getElementById('thumbs-' + id);
+  const cntEl   = document.getElementById('pc-' + id);
+  if (!thumbEl) return;
+  thumbEl.innerHTML = photos.map((p, i) => `
+    <div class="thumb-wrap">
+      <img src="${p.thumb || p.url}" title="${p.name}" onclick="openLb(${id},${i})" onerror="this.src='${p.url}'">
+      <button class="thumb-del" onclick="delPhoto(${id},'${p.id}')">×</button>
+    </div>`).join('');
+  if (cntEl) cntEl.textContent = photos.length ? `${photos.length} photo${photos.length > 1 ? 's' : ''}` : '';
+}
+
+// ── Lightbox ──────────────────────────────────────────────────────────────
+let lbId = null, lbIdx = 0;
+function openLb(id, idx) {
+  lbId = id; lbIdx = idx;
+  const p = LOCAL[String(id)]?.photos?.[idx]; if (!p) return;
+  const loc = LOCATIONS.find(l => l.id === id);
+  document.getElementById('lb-img').src = p.thumb || p.url || '';
+  document.getElementById('lb-img').dataset.fullurl = p.url || '';
+  document.getElementById('lb-caption').textContent = `${loc?.facility} · ${p.name} · ${idx+1} of ${LOCAL[String(id)].photos.length}`;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLb() { document.getElementById('lightbox').classList.remove('open'); document.getElementById('lb-img').src=''; }
+function lbNav(dir) {
+  const photos = LOCAL[String(lbId)]?.photos || [];
+  lbIdx = (lbIdx + dir + photos.length) % photos.length;
+  const p = photos[lbIdx]; const loc = LOCATIONS.find(l => l.id === lbId);
+  document.getElementById('lb-img').src = p.thumb || p.url || '';
+  document.getElementById('lb-img').dataset.fullurl = p.url || '';
+  document.getElementById('lb-caption').textContent = `${loc?.facility} · ${p.name} · ${lbIdx+1} of ${photos.length}`;
+}
+function lbOpenFull() {
+  const url = document.getElementById('lb-img').dataset.fullurl;
+  if (url) window.open(url, '_blank');
+}
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('open')) return;
+  if (e.key === 'Escape') closeLb();
+  if (e.key === 'ArrowLeft') lbNav(-1);
+  if (e.key === 'ArrowRight') lbNav(1);
+});
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+function toast(msg, type = 'ok') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<div class="toast-dot"></div>${msg}`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+</script>
+</body>
+</html>
