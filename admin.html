@@ -371,8 +371,10 @@ async function saveAll(){
         id:l.id,
         installed:LOCAL[String(l.id)].installed,
         notes:LOCAL[String(l.id)].notes,
-        planned_date:LOCAL[String(l.id)].planned_date||'',
-        actual_date:LOCAL[String(l.id)].actual_date||''
+        planned_start:LOCAL[String(l.id)].planned_start||'',
+        planned_end:LOCAL[String(l.id)].planned_end||'',
+        actual_start:LOCAL[String(l.id)].actual_start||'',
+        actual_end:LOCAL[String(l.id)].actual_end||''
       }))
     })});
     const data=await res.json();
@@ -515,12 +517,11 @@ function renderTable(){
 
 function dateChanged(id){
   syncInputs(id);
-  // Refresh the formatted date display under the input
   const lc=LOCAL[String(id)];
-  const psEl=document.getElementById('ps-'+id),peEl=document.getElementById('pe-'+id);
-  const asEl=document.getElementById('as-'+id),aeEl=document.getElementById('ae-'+id);
-  if(pdEl){const sib=pdEl.nextElementSibling;if(sib)sib.innerHTML=lc.planned_date?`<span class="date-badge set">${fmtDate(lc.planned_date)}</span>`:'<span class="date-badge">Not set</span>';}
-  if(adEl){const sib=adEl.nextElementSibling;if(sib)sib.innerHTML=lc.actual_date?`<span class="date-badge set">${fmtDate(lc.actual_date)}</span>`:'<span class="date-badge">Not set</span>';}
+  const pd=document.getElementById('pd-disp-'+id);
+  const ad=document.getElementById('ad-disp-'+id);
+  if(pd){pd.textContent=lc.planned_start?fmtRange(lc.planned_start,lc.planned_end):'Not set';pd.className='date-badge'+(lc.planned_start?' set':'');}
+  if(ad){ad.textContent=lc.actual_start?fmtRange(lc.actual_start,lc.actual_end):'Not set';ad.className='date-badge'+(lc.actual_start?' set':'');}
 }
 
 function adj(id,d){const inp=document.getElementById('v-'+id);if(!inp)return;const loc=LOCATIONS.find(l=>l.id===id);inp.value=Math.max(0,Math.min(loc.qty,(parseInt(inp.value)||0)+d));live(id);}
