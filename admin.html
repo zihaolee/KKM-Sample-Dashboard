@@ -429,6 +429,17 @@ function getStatus(qty,inst){if(!inst)return'pending';if(inst>=qty)return'comple
 function badge(s){const L={complete:'Complete',inprogress:'In Progress',pending:'Pending'};return`<span class="badge ${s}">${L[s]}</span>`;}
 function fmtDate(d){if(!d)return'—';try{return new Date(d).toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return d;}}
 
+function fmtRange(start,end){
+  if(!start)return'Not set';
+  const s=fmtDate(start);
+  if(!end||end===start)return s;
+  const ds=new Date(start),de=new Date(end);
+  if(!isNaN(ds)&&!isNaN(de)&&ds.getMonth()===de.getMonth()&&ds.getFullYear()===de.getFullYear()){
+    return ds.getDate()+' - '+de.getDate()+' '+ds.toLocaleDateString('en-MY',{month:'short',year:'numeric'});
+  }
+  return s+' – '+fmtDate(end);
+}
+
 function renderTable(){
   const search=(document.getElementById('search')?.value||'').toLowerCase();
   const rows=LOCATIONS.filter(l=>{
