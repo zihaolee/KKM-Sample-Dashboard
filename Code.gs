@@ -115,7 +115,7 @@ function doGet(e) {
       const photos = photoIds.map(item => {
         const fid  = typeof item === 'object' ? item.id   : item;
         const name = typeof item === 'object' ? item.name : '';
-        return { id: fid, name, url: 'https://drive.google.com/file/d/'+fid+'/view', thumb: 'https://drive.google.com/thumbnail?id='+fid+'&sz=w400-h400' };
+        return { id: fid, name, url: 'https://drive.google.com/file/d/'+fid+'/view', thumb: 'https://lh3.googleusercontent.com/d/'+fid+'=w400' };
       });
 
       // UAT docs
@@ -189,7 +189,7 @@ function doPostInner(e) {
           break;
         }
       }
-      return corsResponse({ ok:true, file_id:fileId, url:'https://drive.google.com/file/d/'+fileId+'/view', thumb:'https://drive.google.com/thumbnail?id='+fileId+'&sz=w400-h400' });
+      return corsResponse({ ok:true, file_id:fileId, url:'https://drive.google.com/file/d/'+fileId+'/view', thumb:'https://lh3.googleusercontent.com/d/'+fileId+'=w400' });
     }
 
     // ── Delete photo ──────────────────────────────────────────────────────
