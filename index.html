@@ -86,6 +86,32 @@
   .lb-nav-btn:hover { background: rgba(255,255,255,0.22); }
   @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } .summary-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 600px) { .summary-grid { grid-template-columns: 1fr; } nav { padding: 0 16px; } .page { padding: 16px; } }
+
+  /* UAT modal */
+  #uat-modal { position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:300; display:none; align-items:center; justify-content:center; flex-direction:column; }
+  #uat-modal.open { display:flex; }
+  .uat-modal-box { background:#fff; border-radius:10px; overflow:hidden; width:90vw; max-width:860px; height:85vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.4); }
+  .uat-modal-hdr { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; background:var(--accent); color:#fff; flex-shrink:0; }
+  .uat-modal-title { font-size:13px; font-weight:600; font-family:var(--mono); }
+  .uat-modal-close { background:none; border:none; color:rgba(255,255,255,0.8); font-size:22px; cursor:pointer; line-height:1; }
+  .uat-modal-close:hover { color:#fff; }
+  .uat-modal-tabs { display:flex; gap:4px; padding:8px 12px; background:var(--card2); border-bottom:1px solid var(--border); flex-shrink:0; flex-wrap:wrap; }
+  .uat-tab { padding:4px 12px; border-radius:5px; font-size:11px; font-family:var(--mono); cursor:pointer; border:1px solid var(--border); background:var(--card); color:var(--muted); white-space:nowrap; }
+  .uat-tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .uat-modal-frame { flex:1; border:none; width:100%; }
+  .uat-modal-dl { padding:8px 18px; background:var(--card2); border-top:1px solid var(--border); font-size:11px; display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .uat-dl-btn { padding:4px 12px; background:var(--accent); color:#fff; border:none; border-radius:5px; font-size:11px; font-family:var(--mono); cursor:pointer; text-decoration:none; }
+  /* UAT badge in table */
+  .uat-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:5px; font-size:11px; font-family:var(--mono); background:var(--accent-light); color:var(--accent); border:1px solid rgba(26,79,138,0.2); cursor:pointer; white-space:nowrap; }
+  .uat-badge:hover { background:var(--accent); color:#fff; }
+  .uat-none { font-size:11px; color:var(--muted); }
+
+  /* Date display */
+  .date-cell { font-size:11px; font-family:var(--mono); white-space:nowrap; }
+  .date-val { color:var(--text); }
+  .date-none { color:var(--muted); }
+  .date-overdue { color:#b91c1c; }
+  .date-label { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; display:block; margin-bottom:1px; }
 </style>
 </head>
 <body>
@@ -137,9 +163,9 @@
         <th style="width:36px">#</th><th>Facility</th><th>State</th>
         <th style="text-align:center">Qty</th><th style="text-align:center">Installed</th>
         <th style="min-width:140px">Progress</th><th style="width:110px">Status</th>
-        <th>Notes</th><th style="min-width:140px">Photos</th>
+        <th>Notes</th><th style="min-width:130px">Dates</th><th style="min-width:140px">Photos</th><th style="min-width:120px">UAT</th>
       </tr></thead>
-      <tbody id="loc-table-body"><tr><td colspan="9" class="loading-state">Loading...</td></tr></tbody>
+      <tbody id="loc-table-body"><tr><td colspan="11" class="loading-state">Loading...</td></tr></tbody>
     </table>
   </div>
   <div style="font-size:11px;font-family:var(--mono);color:var(--muted);text-align:right;margin-top:-16px;margin-bottom:24px" id="loc-sync-ts"></div>
@@ -148,7 +174,7 @@
 // ================================================================
 //  CONFIGURE: paste your Apps Script Web App URL here
 // ================================================================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGA_WlbOapOR28CaFCvopzAZ3uZa65MuQRTiOAwAsFw4mygHNXBuD_0juu8YAFQFAvCQ/exec';
+const SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
 // ================================================================
 const LOCATIONS = [
   {id:1,state:"WP Putrajaya",facility:"Bahagian Pengurusan Maklumat, Kompleks E",qty:17},
@@ -187,6 +213,44 @@ const LOCATIONS = [
 ];
 const TOTAL=LOCATIONS.reduce((s,l)=>s+l.qty,0);
 let DATA={};
+
+function uatBadge(id) {
+  const docs = getUatDocs(id);
+  if (!docs.length) return '<span class="uat-none">—</span>';
+  return '<span class="uat-badge" onclick="openUatModal(' + id + ')" title="View UAT documents">📄 ' + docs.length + ' doc' + (docs.length > 1 ? 's' : '') + '</span>';
+}
+
+let uatCurrentId = null;
+function openUatModal(id) {
+  const docs = getUatDocs(id);
+  if (!docs.length) return;
+  const loc = LOCATIONS.find(l => l.id === id);
+  uatCurrentId = id;
+  document.getElementById('uat-modal-title').textContent = (loc ? loc.facility : '') + ' — UAT Documents';
+  // Build tabs
+  const tabsEl = document.getElementById('uat-modal-tabs');
+  tabsEl.innerHTML = docs.map((d, i) => '<button class="uat-tab' + (i===0?' active':'') + '" onclick="switchUatTab(' + id + ',' + i + ',this)">' + d.name + '</button>').join('');
+  // Load first doc
+  switchUatTab(id, 0, tabsEl.firstChild);
+  document.getElementById('uat-modal').classList.add('open');
+}
+function switchUatTab(id, idx, el) {
+  const docs = getUatDocs(id);
+  if (!docs[idx]) return;
+  document.querySelectorAll('.uat-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('uat-frame').src = docs[idx].view_url;
+  document.getElementById('uat-dl-link').href = docs[idx].dl_url;
+  document.getElementById('uat-dl-name').textContent = docs[idx].name;
+}
+function closeUatModal() {
+  document.getElementById('uat-modal').classList.remove('open');
+  document.getElementById('uat-frame').src = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeUatModal();
+});
+
 async function loadData(){
   if(SCRIPT_URL==='YOUR_APPS_SCRIPT_URL_HERE'){
     document.getElementById('dash-content').innerHTML='<div class="config-note">Configure SCRIPT_URL in index.html and admin.html with your Apps Script Web App URL.</div>';
@@ -209,6 +273,20 @@ async function loadData(){
 function getInst(id){return DATA.locations?.[id]?.installed||0;}
 function getNotes(id){return DATA.locations?.[id]?.notes||'';}
 function getPhotos(id){return DATA.locations?.[id]?.photos||[];}
+function getUatDocs(id){return DATA.locations?.[id]?.uat_docs||[];}
+function getPlannedDate(id){return DATA.locations?.[id]?.planned_date||'';}
+function getActualDate(id){return DATA.locations?.[id]?.actual_date||'';}
+function fmtDate(d){if(!d)return'';try{return new Date(d).toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return d;}}
+function dateCellHtml(planned,actual){
+  const now=new Date(); now.setHours(0,0,0,0);
+  let html='<div class="date-cell">';
+  if(planned){const pd=new Date(planned);const overdue=!actual&&pd<now;html+='<span class="date-label">Planned</span><span class="date-val'+(overdue?' date-overdue':'')+'">'+fmtDate(planned)+'</span>';}
+  else{html+='<span class="date-label">Planned</span><span class="date-none">—</span>';}
+  html+='<br>';
+  if(actual){html+='<span class="date-label">Actual</span><span class="date-val" style="color:var(--green)">'+fmtDate(actual)+'</span>';}
+  else{html+='<span class="date-label">Actual</span><span class="date-none">—</span>';}
+  return html+'</div>';
+}
 function getStatus(qty,inst){if(!inst)return'pending';if(inst>=qty)return'complete';return'inprogress';}
 function badge(s){const L={complete:'Complete',inprogress:'In Progress',pending:'Pending'};return'<span class="badge '+s+'">'+L[s]+'</span>';}
 function photoStrip(id){
@@ -258,7 +336,7 @@ function renderDashboard(){
     <div class="table-wrap" style="padding:18px 20px;margin-bottom:24px;"><div class="sec-title" style="margin-bottom:12px;">Overall installation progress</div><div class="prog-track" style="height:14px;border-radius:7px;"><div class="prog-fill green" style="width:${pct}%"></div></div><div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--muted);"><span>0</span><span>${totalInst} / ${TOTAL} switches</span><span>${TOTAL}</span></div></div>
     <div class="two-col">
       <div><div class="sec-head"><div class="sec-title">Progress by state</div></div><div class="state-grid">${Object.entries(states).sort((a,b)=>a[0].localeCompare(b[0])).map(([name,d])=>{const p=Math.round((d.inst/d.qty)*100);return'<div class="state-card"><div class="state-name">'+name+'</div><div class="state-nums"><span>'+d.sites+' sites</span><span>'+d.inst+'/'+d.qty+'</span></div><div class="prog-track"><div class="prog-fill '+(p===100?'green':'')+'" style="width:'+p+'%"></div></div><div style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-top:4px;text-align:right">'+p+'%</div></div>';}).join('')}</div></div>
-      <div><div class="sec-head"><div class="sec-title">Location summary</div></div><div class="table-wrap"><table><thead><tr><th>Facility</th><th style="text-align:center">Qty</th><th style="text-align:center">Installed</th><th>Status</th><th>Photos</th></tr></thead><tbody>${LOCATIONS.map(l=>'<tr><td style="font-weight:500">'+l.facility+'</td><td style="font-family:var(--mono);text-align:center">'+l.qty+'</td><td style="font-family:var(--mono);text-align:center">'+getInst(l.id)+'</td><td>'+badge(getStatus(l.qty,getInst(l.id)))+'</td><td>'+photoStrip(l.id)+'</td></tr>').join('')}</tbody></table></div></div>
+      <div><div class="sec-head"><div class="sec-title">Location summary</div></div><div class="table-wrap"><table><thead><tr><th>Facility</th><th style="text-align:center">Qty</th><th style="text-align:center">Installed</th><th>Status</th><th>Dates</th><th>Photos</th><th>UAT</th></tr></thead><tbody>${LOCATIONS.map(l=>'<tr><td style="font-weight:500">'+l.facility+'</td><td style="font-family:var(--mono);text-align:center">'+l.qty+'</td><td style="font-family:var(--mono);text-align:center">'+getInst(l.id)+'</td><td>'+badge(getStatus(l.qty,getInst(l.id)))+'</td><td>'+dateCellHtml(getPlannedDate(l.id),getActualDate(l.id))+'</td><td>'+photoStrip(l.id)+'</td><td>'+uatBadge(l.id)+'</td></tr>').join('')}</tbody></table></div></div>
     </div>`;
 }
 function renderLocations(){
@@ -274,7 +352,7 @@ function renderLocations(){
     if(photosF==='no'&&getPhotos(l.id).length)return false;
     return true;
   });
-  document.getElementById('loc-table-body').innerHTML=rows.map(l=>{const inst=getInst(l.id),s=getStatus(l.qty,inst),p=Math.round((inst/l.qty)*100);return'<tr><td style="font-family:var(--mono);font-size:11px;color:var(--muted)">'+l.id+'</td><td style="font-weight:500">'+l.facility+'</td><td style="font-size:11px;color:var(--muted)">'+l.state+'</td><td style="font-family:var(--mono);text-align:center">'+l.qty+'</td><td style="font-family:var(--mono);text-align:center">'+inst+'</td><td><div class="prog-track"><div class="prog-fill '+(s==='complete'?'green':'')+'" style="width:'+p+'%"></div></div><div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:2px">'+p+'%</div></td><td>'+badge(s)+'</td><td style="font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(getNotes(l.id)||'-')+'</td><td>'+photoStrip(l.id)+'</td></tr>';}).join('');
+  document.getElementById('loc-table-body').innerHTML=rows.map(l=>{const inst=getInst(l.id),s=getStatus(l.qty,inst),p=Math.round((inst/l.qty)*100);return'<tr><td style="font-family:var(--mono);font-size:11px;color:var(--muted)">'+l.id+'</td><td style="font-weight:500">'+l.facility+'</td><td style="font-size:11px;color:var(--muted)">'+l.state+'</td><td style="font-family:var(--mono);text-align:center">'+l.qty+'</td><td style="font-family:var(--mono);text-align:center">'+inst+'</td><td><div class="prog-track"><div class="prog-fill '+(s==='complete'?'green':'')+'" style="width:'+p+'%"></div></div><div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:2px">'+p+'%</div></td><td>'+badge(s)+'</td><td style="font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(getNotes(l.id)||'-')+'</td><td>'+dateCellHtml(getPlannedDate(l.id),getActualDate(l.id))+'</td><td>'+photoStrip(l.id)+'</td><td>'+uatBadge(l.id)+'</td></tr>';}).join('');
 }
 function populateStateFilters(){
   const states=[...new Set(LOCATIONS.map(l=>l.state))].sort();
@@ -289,5 +367,21 @@ function showPage(name,event){
 }
 loadData();
 </script>
+
+<!-- UAT DOCUMENT MODAL -->
+<div id="uat-modal">
+  <div class="uat-modal-box">
+    <div class="uat-modal-hdr">
+      <div class="uat-modal-title" id="uat-modal-title">UAT Document</div>
+      <button class="uat-modal-close" onclick="closeUatModal()">×</button>
+    </div>
+    <div class="uat-modal-tabs" id="uat-modal-tabs"></div>
+    <iframe class="uat-modal-frame" id="uat-frame" src="" allowfullscreen></iframe>
+    <div class="uat-modal-dl">
+      <span style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="uat-dl-name"></span>
+      <a class="uat-dl-btn" id="uat-dl-link" href="#" target="_blank" download>⬇ Download</a>
+    </div>
+  </div>
+</div>
 </body>
 </html>
