@@ -445,7 +445,7 @@ function renderTable(){
     const thumbs=photos.map((p,i)=>{
       const th=p.thumb||(p.id?`https://lh3.googleusercontent.com/d/${p.id}=w400`:'');
       return`<div class="thumb-wrap">
-        <img src="${th}" title="${p.name}" onclick="openLb(${l.id},${i})" onerror="this.src='https://drive.google.com/uc?id=${p.id}&export=view'">
+        <img src="${th}" title="${p.name}" onclick="openLb(${l.id},${i})">
         <button class="thumb-del" onclick="delPhoto(${l.id},'${p.id}')">×</button>
       </div>`;}).join('');
     const uatItems=uatDocs.map(d=>`
@@ -560,7 +560,7 @@ function refreshPhotoCell(id){
   const photos=LOCAL[String(id)]?.photos||[];
   const thumbEl=document.getElementById('thumbs-'+id),cntEl=document.getElementById('pc-'+id);
   if(!thumbEl)return;
-  thumbEl.innerHTML=photos.map((p,i)=>{const th=p.thumb||(p.id?`https://lh3.googleusercontent.com/d/${p.id}=w400`:'');return`<div class="thumb-wrap"><img src="${th}" title="${p.name}" onclick="openLb(${id},${i})" onerror="this.src='https://drive.google.com/uc?id=${p.id}&export=view'"><button class="thumb-del" onclick="delPhoto(${id},'${p.id}')">×</button></div>`;}).join('');
+  thumbEl.innerHTML=photos.map((p,i)=>{const th=p.thumb||(p.id?`https://lh3.googleusercontent.com/d/${p.id}=w400`:'');return`<div class="thumb-wrap"><img src="${th}" title="${p.name}" onclick="openLb(${id},${i})"><button class="thumb-del" onclick="delPhoto(${id},'${p.id}')">×</button></div>`;}).join('');
   if(cntEl)cntEl.textContent=photos.length?`${photos.length} photo${photos.length>1?'s':''}` :'';
 }
 
