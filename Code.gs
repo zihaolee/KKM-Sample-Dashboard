@@ -25,7 +25,7 @@ function initSheet() {
   let sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
-    sheet.getRange(1,1,1,13).setValues([['id','state','facility','qty','installed','notes','updated_at','photo_ids','uat_json','planned_start','planned_end','actual_start','actual_end']]);
+    sheet.getRange(1,1,1,13).setValues([['id','state','facility','qty','installed','notes','updated_at','photos_json','uat_json','planned_start','planned_end','actual_start','actual_end']]);
     sheet.getRange(1,1,1,9).setFontWeight('bold').setBackground('#1a4f8a').setFontColor('#ffffff');
     sheet.setFrozenRows(1);
     const LOCS = [
@@ -97,11 +97,12 @@ function getColIdx(headers, name) {
 
 // ── GET — return all data ─────────────────────────────────────────────────
 function doGet(e) {
+  // debug endpoint removed
   try {
     const sheet   = initSheet();
     const rows    = sheet.getDataRange().getValues();
     const headers = rows[0];
-    const photoCol = getColIdx(headers, 'photo_ids');
+    const photoCol = getColIdx(headers, 'photos_json');
     const uatCol   = getColIdx(headers, 'uat_json');
     const locations = {};
 
@@ -115,7 +116,7 @@ function doGet(e) {
       const photos = photoIds.map(item => {
         const fid  = typeof item === 'object' ? item.id   : item;
         const name = typeof item === 'object' ? item.name : '';
-        return { id: fid, name, url: 'https://drive.google.com/file/d/'+fid+'/view', thumb: 'https://lh3.googleusercontent.com/d/'+fid+'=w400' };
+        return { id: fid, name, url: 'https://drive.google.com/file/d/'+fid+'/view', thumb: 'https://drive.google.com/uc?id='+fid+'&export=view' };
       });
 
       // UAT docs
@@ -168,11 +169,15 @@ function doPostInner(e) {
     const sheet   = initSheet();
     const rows    = sheet.getDataRange().getValues();
     const headers = rows[0];
-    const photoCol = headers.indexOf('photo_ids') + 1; // 1-based
-    const uatCol   = headers.indexOf('uat_json')  + 1;
+    // Column lookups — safe 1-based, 0 means not found
+    const photoColIdx = headers.indexOf('photos_json');
+    const uatColIdx   = headers.indexOf('uat_json');
+    const photoCol = photoColIdx >= 0 ? photoColIdx + 1 : null;
+    const uatCol   = uatColIdx   >= 0 ? uatColIdx   + 1 : null;
 
     // ── Upload photo ──────────────────────────────────────────────────────
     if (body.action === 'upload_photo') {
+      if (!photoCol) return corsResponse({ ok:false, error:'photos_json column not found in sheet' });
       const folder   = getFolder();
       const siteId   = Number(body.site_id);
       const fileName = body.file_name || ('photo_site'+siteId+'_'+Date.now()+'.jpg');
@@ -189,11 +194,12 @@ function doPostInner(e) {
           break;
         }
       }
-      return corsResponse({ ok:true, file_id:fileId, url:'https://drive.google.com/file/d/'+fileId+'/view', thumb:'https://lh3.googleusercontent.com/d/'+fileId+'=w400' });
+      return corsResponse({ ok:true, file_id:fileId, url:'https://drive.google.com/file/d/'+fileId+'/view', thumb:'https://drive.google.com/uc?id='+fileId+'&export=view' });
     }
 
     // ── Delete photo ──────────────────────────────────────────────────────
     if (body.action === 'delete_photo') {
+      if (!photoCol) return corsResponse({ ok:false, error:'photos_json column not found in sheet' });
       const siteId = Number(body.site_id), fileId = body.file_id;
       try { DriveApp.getFileById(fileId).setTrashed(true); } catch(e) {}
       for (let i = 1; i < rows.length; i++) {
@@ -210,11 +216,11 @@ function doPostInner(e) {
     // ── Upload UAT document ───────────────────────────────────────────────
     if (body.action === 'upload_uat') {
       if (!body.data) return corsResponse({ ok:false, error:'No file data received' });
+      if (!uatCol) return corsResponse({ ok:false, error:'uat_json column not found in sheet' });
       const folder   = getUatFolder();
       const siteId   = Number(body.site_id);
       const origName = body.file_name || ('UAT_site'+siteId+'_'+Date.now()+'.pdf');
       const mimeType = body.mime_type || 'application/pdf';
-      // Decode base64 — strip data URI prefix if accidentally included
       const b64clean = body.data.replace(/^data:[^;]+;base64,/, '');
       let decoded;
       try {
@@ -240,6 +246,7 @@ function doPostInner(e) {
 
     // ── Delete UAT document ───────────────────────────────────────────────
     if (body.action === 'delete_uat') {
+      if (!uatCol) return corsResponse({ ok:false, error:'uat_json column not found in sheet' });
       const siteId = Number(body.site_id), fileId = body.file_id;
       try { DriveApp.getFileById(fileId).setTrashed(true); } catch(e) {}
       for (let i = 1; i < rows.length; i++) {
