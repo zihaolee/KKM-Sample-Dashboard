@@ -268,16 +268,18 @@ async function loadData(){
     document.getElementById('dash-content').innerHTML='<div class="error-banner">Could not load data: '+e.message+'</div>';
     DATA={locations:{}};
   }
-  renderDashboard();renderLocations();populateStateFilters();
+  try{renderDashboard();}catch(e){document.getElementById('dash-content').innerHTML='<div class="error-banner">Render error: '+e.message+'</div>';console.error(e);}
+  try{renderLocations();}catch(e){console.error(e);}
+  populateStateFilters();
 }
-function getInst(id){return DATA.locations?.[id]?.installed||0;}
-function getNotes(id){return DATA.locations?.[id]?.notes||'';}
-function getPhotos(id){return DATA.locations?.[id]?.photos||[];}
-function getUatDocs(id){return DATA.locations?.[id]?.uat_docs||[];}
-function getPlannedStart(id){return DATA.locations?.[id]?.planned_start||'';}
-function getPlannedEnd(id){return DATA.locations?.[id]?.planned_end||'';}
-function getActualStart(id){return DATA.locations?.[id]?.actual_start||'';}
-function getActualEnd(id){return DATA.locations?.[id]?.actual_end||'';}
+function getInst(id){return DATA.locations?.[String(id)]?.installed||0;}
+function getNotes(id){return DATA.locations?.[String(id)]?.notes||'';}
+function getPhotos(id){return DATA.locations?.[String(id)]?.photos||[];}
+function getUatDocs(id){return DATA.locations?.[String(id)]?.uat_docs||[];}
+function getPlannedStart(id){return DATA.locations?.[String(id)]?.planned_start||'';}
+function getPlannedEnd(id){return DATA.locations?.[String(id)]?.planned_end||'';}
+function getActualStart(id){return DATA.locations?.[String(id)]?.actual_start||'';}
+function getActualEnd(id){return DATA.locations?.[String(id)]?.actual_end||'';}
 function fmtDate(d){if(!d)return'';try{return new Date(d).toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return d;}}
 function fmtRange(start,end){
   if(!start)return'—';
