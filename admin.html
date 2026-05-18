@@ -212,8 +212,8 @@ tbody td{padding:8px 14px;vertical-align:middle;}
           <th style="min-width:80px">Progress</th>
           <th style="width:100px">Status</th>
           <th>Notes</th>
-          <th style="min-width:130px">Planned Date</th>
-          <th style="min-width:130px">Actual Date</th>
+          <th style="min-width:200px">Planned Installation</th>
+          <th style="min-width:200px">Actual Installation</th>
           <th style="min-width:140px">Photos</th>
           <th style="min-width:150px">UAT Document</th>
           <th style="width:70px"></th>
@@ -310,8 +310,10 @@ async function loadData(){
           notes:REMOTE[id]?.notes||'',
           photos:REMOTE[id]?.photos||[],
           uat_docs:REMOTE[id]?.uat_docs||[],
-          planned_date:REMOTE[id]?.planned_date||'',
-          actual_date:REMOTE[id]?.actual_date||''
+          planned_start:REMOTE[id]?.planned_start||'',
+          planned_end:REMOTE[id]?.planned_end||'',
+          actual_start:REMOTE[id]?.actual_start||'',
+          actual_end:REMOTE[id]?.actual_end||''
         };
       }
     });
@@ -323,7 +325,7 @@ async function loadData(){
     document.getElementById('sync-label').textContent='Offline';
     LOCATIONS.forEach(l=>{
       const id=String(l.id);
-      if(!LOCAL[id])LOCAL[id]={installed:0,notes:'',photos:[],uat_docs:[],planned_date:'',actual_date:''};
+      if(!LOCAL[id])LOCAL[id]={installed:0,notes:'',photos:[],uat_docs:[],planned_start:'',planned_end:'',actual_start:'',actual_end:''};
     });
   }
   document.getElementById('loading-overlay').style.display='none';
@@ -339,8 +341,10 @@ async function saveRow(id){
       password:ADMIN_PW,action:'update',id,
       installed:LOCAL[String(id)].installed,
       notes:LOCAL[String(id)].notes,
-      planned_date:LOCAL[String(id)].planned_date||'',
-      actual_date:LOCAL[String(id)].actual_date||''
+      planned_start:LOCAL[String(id)].planned_start||'',
+      planned_end:LOCAL[String(id)].planned_end||'',
+      actual_start:LOCAL[String(id)].actual_start||'',
+      actual_end:LOCAL[String(id)].actual_end||''
     })});
     const data=await res.json();
     if(!data.ok)throw new Error(data.error);
@@ -357,7 +361,7 @@ async function saveAll(){
   syncAllInputs();
   const dirty=LOCATIONS.filter(l=>{
     const id=String(l.id),r=REMOTE[id]||{},lc=LOCAL[id]||{};
-    return lc.installed!==r.installed||lc.notes!==r.notes||lc.planned_date!==r.planned_date||lc.actual_date!==r.actual_date;
+    return lc.installed!==r.installed||lc.notes!==r.notes||lc.planned_start!==r.planned_start||lc.planned_end!==r.planned_end||lc.actual_start!==r.actual_start||lc.actual_end!==r.actual_end;
   });
   if(!dirty.length){toast('No unsaved changes','ok');return;}
   try{
@@ -381,13 +385,16 @@ async function saveAll(){
 
 function syncInputs(id){
   const sid=String(id);
-  if(!LOCAL[sid])LOCAL[sid]={installed:0,notes:'',photos:[],uat_docs:[],planned_date:'',actual_date:''};
+  if(!LOCAL[sid])LOCAL[sid]={installed:0,notes:'',photos:[],uat_docs:[],planned_start:'',planned_end:'',actual_start:'',actual_end:''};
   const vEl=document.getElementById('v-'+id),nEl=document.getElementById('n-'+id);
-  const pdEl=document.getElementById('pd-'+id),adEl=document.getElementById('ad-'+id);
+  const psEl=document.getElementById('ps-'+id),peEl=document.getElementById('pe-'+id);
+  const asEl=document.getElementById('as-'+id),aeEl=document.getElementById('ae-'+id);
   if(vEl)LOCAL[sid].installed=Math.max(0,Math.min(LOCATIONS.find(l=>l.id===id).qty,parseInt(vEl.value)||0));
   if(nEl)LOCAL[sid].notes=nEl.value.trim();
-  if(pdEl)LOCAL[sid].planned_date=pdEl.value;
-  if(adEl)LOCAL[sid].actual_date=adEl.value;
+  if(psEl)LOCAL[sid].planned_start=psEl.value;
+  if(peEl)LOCAL[sid].planned_end=peEl.value;
+  if(asEl)LOCAL[sid].actual_start=asEl.value;
+  if(aeEl)LOCAL[sid].actual_end=aeEl.value;
 }
 function syncAllInputs(){LOCATIONS.forEach(l=>syncInputs(l.id));}
 
@@ -432,7 +439,7 @@ function renderTable(){
     return true;
   });
   document.getElementById('tbody').innerHTML=rows.map(l=>{
-    const lc=LOCAL[String(l.id)]||{installed:0,notes:'',photos:[],uat_docs:[],planned_date:'',actual_date:''};
+    const lc=LOCAL[String(l.id)]||{installed:0,notes:'',photos:[],uat_docs:[],planned_start:'',planned_end:'',actual_start:'',actual_end:''};
     const v=lc.installed,s=getStatus(l.qty,v),pct=Math.round((v/l.qty)*100);
     const photos=lc.photos||[],uatDocs=lc.uat_docs||[];
     const thumbs=photos.map((p,i)=>`
@@ -467,12 +474,18 @@ function renderTable(){
       <td id="st-${l.id}">${badge(s)}</td>
       <td><textarea class="note-input" id="n-${l.id}" placeholder="Notes...">${lc.notes}</textarea></td>
       <td>
-        <input type="date" class="date-input" id="pd-${l.id}" value="${lc.planned_date||''}" onchange="dateChanged(${l.id})">
-        ${lc.planned_date?`<div class="date-badge set">${fmtDate(lc.planned_date)}</div>`:'<div class="date-badge">Not set</div>'}
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:3px">Start</div>
+        <input type="date" class="date-input" id="ps-${l.id}" value="${lc.planned_start||''}" onchange="dateChanged(${l.id})">
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin:4px 0 3px">End</div>
+        <input type="date" class="date-input" id="pe-${l.id}" value="${lc.planned_end||''}" onchange="dateChanged(${l.id})">
+        <div class="date-badge ${lc.planned_start?'set':''}" id="pd-disp-${l.id}">${lc.planned_start?fmtRange(lc.planned_start,lc.planned_end):'Not set'}</div>
       </td>
       <td>
-        <input type="date" class="date-input" id="ad-${l.id}" value="${lc.actual_date||''}" onchange="dateChanged(${l.id})">
-        ${lc.actual_date?`<div class="date-badge set">${fmtDate(lc.actual_date)}</div>`:'<div class="date-badge">Not set</div>'}
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:3px">Start</div>
+        <input type="date" class="date-input" id="as-${l.id}" value="${lc.actual_start||''}" onchange="dateChanged(${l.id})">
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin:4px 0 3px">End</div>
+        <input type="date" class="date-input" id="ae-${l.id}" value="${lc.actual_end||''}" onchange="dateChanged(${l.id})">
+        <div class="date-badge ${lc.actual_start?'set':''}" id="ad-disp-${l.id}">${lc.actual_start?fmtRange(lc.actual_start,lc.actual_end):'Not set'}</div>
       </td>
       <td class="photo-cell">
         <label class="photo-upload-btn">📷 Add<input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(${l.id},this)"></label>
@@ -492,7 +505,8 @@ function dateChanged(id){
   syncInputs(id);
   // Refresh the formatted date display under the input
   const lc=LOCAL[String(id)];
-  const pdEl=document.getElementById('pd-'+id),adEl=document.getElementById('ad-'+id);
+  const psEl=document.getElementById('ps-'+id),peEl=document.getElementById('pe-'+id);
+  const asEl=document.getElementById('as-'+id),aeEl=document.getElementById('ae-'+id);
   if(pdEl){const sib=pdEl.nextElementSibling;if(sib)sib.innerHTML=lc.planned_date?`<span class="date-badge set">${fmtDate(lc.planned_date)}</span>`:'<span class="date-badge">Not set</span>';}
   if(adEl){const sib=adEl.nextElementSibling;if(sib)sib.innerHTML=lc.actual_date?`<span class="date-badge set">${fmtDate(lc.actual_date)}</span>`:'<span class="date-badge">Not set</span>';}
 }
@@ -501,7 +515,7 @@ function adj(id,d){const inp=document.getElementById('v-'+id);if(!inp)return;con
 function live(id){
   const inp=document.getElementById('v-'+id),loc=LOCATIONS.find(l=>l.id===id);if(!inp||!loc)return;
   const v=Math.max(0,Math.min(loc.qty,parseInt(inp.value)||0));inp.value=v;
-  if(!LOCAL[String(id)])LOCAL[String(id)]={installed:0,notes:'',photos:[],uat_docs:[],planned_date:'',actual_date:''};
+  if(!LOCAL[String(id)])LOCAL[String(id)]={installed:0,notes:'',photos:[],uat_docs:[],planned_start:'',planned_end:'',actual_start:'',actual_end:''};
   LOCAL[String(id)].installed=v;
   const pct=Math.round((v/loc.qty)*100),s=getStatus(loc.qty,v);
   const pf=document.getElementById('pf-'+id),pp=document.getElementById('pp-'+id),st=document.getElementById('st-'+id);
@@ -524,7 +538,7 @@ async function handlePhotos(id,input){
       const b64=await compressToBase64(file,1200,0.80);
       const res=await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({password:ADMIN_PW,action:'upload_photo',site_id:id,file_name:'site'+id+'_'+Date.now()+'.jpg',mime_type:'image/jpeg',data:b64})});
       const data=await res.json();if(!data.ok)throw new Error(data.error);
-      if(!LOCAL[sid])LOCAL[sid]={installed:0,notes:'',photos:[],uat_docs:[],planned_date:'',actual_date:''};
+      if(!LOCAL[sid])LOCAL[sid]={installed:0,notes:'',photos:[],uat_docs:[],planned_start:'',planned_end:'',actual_start:'',actual_end:''};
       LOCAL[sid].photos.push({id:data.file_id,name:file.name,url:data.url,thumb:data.thumb});uploaded++;
     }catch(e){toast('Upload failed for '+file.name+': '+e.message,'err');}
   }
@@ -568,7 +582,7 @@ async function handleUat(id,input){
         throw new Error('Server non-JSON: '+preview);
       }
       if(!data.ok)throw new Error(data.error||'Unknown Apps Script error');
-      if(!LOCAL[sid])LOCAL[sid]={installed:0,notes:'',photos:[],uat_docs:[],planned_date:'',actual_date:''};
+      if(!LOCAL[sid])LOCAL[sid]={installed:0,notes:'',photos:[],uat_docs:[],planned_start:'',planned_end:'',actual_start:'',actual_end:''};
       if(!LOCAL[sid].uat_docs)LOCAL[sid].uat_docs=[];
       LOCAL[sid].uat_docs.push({id:data.file_id,name:data.name,view_url:data.view_url,dl_url:data.dl_url});
       toast('UAT uploaded: '+file.name,'ok');

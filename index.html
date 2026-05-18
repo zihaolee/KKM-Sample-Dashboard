@@ -274,16 +274,29 @@ function getInst(id){return DATA.locations?.[id]?.installed||0;}
 function getNotes(id){return DATA.locations?.[id]?.notes||'';}
 function getPhotos(id){return DATA.locations?.[id]?.photos||[];}
 function getUatDocs(id){return DATA.locations?.[id]?.uat_docs||[];}
-function getPlannedDate(id){return DATA.locations?.[id]?.planned_date||'';}
-function getActualDate(id){return DATA.locations?.[id]?.actual_date||'';}
+function getPlannedStart(id){return DATA.locations?.[id]?.planned_start||'';}
+function getPlannedEnd(id){return DATA.locations?.[id]?.planned_end||'';}
+function getActualStart(id){return DATA.locations?.[id]?.actual_start||'';}
+function getActualEnd(id){return DATA.locations?.[id]?.actual_end||'';}
 function fmtDate(d){if(!d)return'';try{return new Date(d).toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return d;}}
-function dateCellHtml(planned,actual){
-  const now=new Date(); now.setHours(0,0,0,0);
+function fmtRange(start,end){
+  if(!start)return'—';
+  const s=fmtDate(start);
+  if(!end||end===start)return s;
+  const ds=new Date(start),de=new Date(end);
+  if(ds.getMonth()===de.getMonth()&&ds.getFullYear()===de.getFullYear()){
+    return ds.getDate()+' – '+de.getDate()+' '+ds.toLocaleDateString('en-MY',{month:'short',year:'numeric'});
+  }
+  return s+' – '+fmtDate(end);
+}
+function dateCellHtml(id){
+  const ps=getPlannedStart(id),pe=getPlannedEnd(id),as=getActualStart(id),ae=getActualEnd(id);
+  const now=new Date();now.setHours(0,0,0,0);
   let html='<div class="date-cell">';
-  if(planned){const pd=new Date(planned);const overdue=!actual&&pd<now;html+='<span class="date-label">Planned</span><span class="date-val'+(overdue?' date-overdue':'')+'">'+fmtDate(planned)+'</span>';}
+  if(ps){const overdue=!as&&new Date(ps)<now;html+='<span class="date-label">Planned</span><span class="date-val'+(overdue?' date-overdue':'')+'" title="'+fmtDate(ps)+(pe&&pe!==ps?' to '+fmtDate(pe):'')+'">'+fmtRange(ps,pe)+'</span>';}
   else{html+='<span class="date-label">Planned</span><span class="date-none">—</span>';}
   html+='<br>';
-  if(actual){html+='<span class="date-label">Actual</span><span class="date-val" style="color:var(--green)">'+fmtDate(actual)+'</span>';}
+  if(as){html+='<span class="date-label">Actual</span><span class="date-val" style="color:var(--green)" title="'+fmtDate(as)+(ae&&ae!==as?' to '+fmtDate(ae):'')+'">'+fmtRange(as,ae)+'</span>';}
   else{html+='<span class="date-label">Actual</span><span class="date-none">—</span>';}
   return html+'</div>';
 }
@@ -336,7 +349,7 @@ function renderDashboard(){
     <div class="table-wrap" style="padding:18px 20px;margin-bottom:24px;"><div class="sec-title" style="margin-bottom:12px;">Overall installation progress</div><div class="prog-track" style="height:14px;border-radius:7px;"><div class="prog-fill green" style="width:${pct}%"></div></div><div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--muted);"><span>0</span><span>${totalInst} / ${TOTAL} switches</span><span>${TOTAL}</span></div></div>
     <div class="two-col">
       <div><div class="sec-head"><div class="sec-title">Progress by state</div></div><div class="state-grid">${Object.entries(states).sort((a,b)=>a[0].localeCompare(b[0])).map(([name,d])=>{const p=Math.round((d.inst/d.qty)*100);return'<div class="state-card"><div class="state-name">'+name+'</div><div class="state-nums"><span>'+d.sites+' sites</span><span>'+d.inst+'/'+d.qty+'</span></div><div class="prog-track"><div class="prog-fill '+(p===100?'green':'')+'" style="width:'+p+'%"></div></div><div style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-top:4px;text-align:right">'+p+'%</div></div>';}).join('')}</div></div>
-      <div><div class="sec-head"><div class="sec-title">Location summary</div></div><div class="table-wrap"><table><thead><tr><th>Facility</th><th style="text-align:center">Qty</th><th style="text-align:center">Installed</th><th>Status</th><th>Dates</th><th>Photos</th><th>UAT</th></tr></thead><tbody>${LOCATIONS.map(l=>'<tr><td style="font-weight:500">'+l.facility+'</td><td style="font-family:var(--mono);text-align:center">'+l.qty+'</td><td style="font-family:var(--mono);text-align:center">'+getInst(l.id)+'</td><td>'+badge(getStatus(l.qty,getInst(l.id)))+'</td><td>'+dateCellHtml(getPlannedDate(l.id),getActualDate(l.id))+'</td><td>'+photoStrip(l.id)+'</td><td>'+uatBadge(l.id)+'</td></tr>').join('')}</tbody></table></div></div>
+      <div><div class="sec-head"><div class="sec-title">Location summary</div></div><div class="table-wrap"><table><thead><tr><th>Facility</th><th style="text-align:center">Qty</th><th style="text-align:center">Installed</th><th>Status</th><th>Dates</th><th>Photos</th><th>UAT</th></tr></thead><tbody>${LOCATIONS.map(l=>'<tr><td style="font-weight:500">'+l.facility+'</td><td style="font-family:var(--mono);text-align:center">'+l.qty+'</td><td style="font-family:var(--mono);text-align:center">'+getInst(l.id)+'</td><td>'+badge(getStatus(l.qty,getInst(l.id)))+'</td><td>'+dateCellHtml(l.id)+'</td><td>'+photoStrip(l.id)+'</td><td>'+uatBadge(l.id)+'</td></tr>').join('')}</tbody></table></div></div>
     </div>`;
 }
 function renderLocations(){
@@ -352,7 +365,7 @@ function renderLocations(){
     if(photosF==='no'&&getPhotos(l.id).length)return false;
     return true;
   });
-  document.getElementById('loc-table-body').innerHTML=rows.map(l=>{const inst=getInst(l.id),s=getStatus(l.qty,inst),p=Math.round((inst/l.qty)*100);return'<tr><td style="font-family:var(--mono);font-size:11px;color:var(--muted)">'+l.id+'</td><td style="font-weight:500">'+l.facility+'</td><td style="font-size:11px;color:var(--muted)">'+l.state+'</td><td style="font-family:var(--mono);text-align:center">'+l.qty+'</td><td style="font-family:var(--mono);text-align:center">'+inst+'</td><td><div class="prog-track"><div class="prog-fill '+(s==='complete'?'green':'')+'" style="width:'+p+'%"></div></div><div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:2px">'+p+'%</div></td><td>'+badge(s)+'</td><td style="font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(getNotes(l.id)||'-')+'</td><td>'+dateCellHtml(getPlannedDate(l.id),getActualDate(l.id))+'</td><td>'+photoStrip(l.id)+'</td><td>'+uatBadge(l.id)+'</td></tr>';}).join('');
+  document.getElementById('loc-table-body').innerHTML=rows.map(l=>{const inst=getInst(l.id),s=getStatus(l.qty,inst),p=Math.round((inst/l.qty)*100);return'<tr><td style="font-family:var(--mono);font-size:11px;color:var(--muted)">'+l.id+'</td><td style="font-weight:500">'+l.facility+'</td><td style="font-size:11px;color:var(--muted)">'+l.state+'</td><td style="font-family:var(--mono);text-align:center">'+l.qty+'</td><td style="font-family:var(--mono);text-align:center">'+inst+'</td><td><div class="prog-track"><div class="prog-fill '+(s==='complete'?'green':'')+'" style="width:'+p+'%"></div></div><div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:2px">'+p+'%</div></td><td>'+badge(s)+'</td><td style="font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(getNotes(l.id)||'-')+'</td><td>'+dateCellHtml(l.id)+'</td><td>'+photoStrip(l.id)+'</td><td>'+uatBadge(l.id)+'</td></tr>';}).join('');
 }
 function populateStateFilters(){
   const states=[...new Set(LOCATIONS.map(l=>l.state))].sort();

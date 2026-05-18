@@ -4,9 +4,10 @@
 //  Deploy as: Web App → Execute as Me → Anyone can access
 // ============================================================
 
-const SHEET_NAME     = 'Deployment';
-const ADMIN_PASSWORD = 'aspek2026!';
-const DRIVE_FOLDER_ID = '1-ORbs-in-ZE8VNdPpsChDFZkthXpVzgh'; // your folder ID
+const SHEET_NAME          = 'Deployment';
+const ADMIN_PASSWORD      = 'aspek2026!';
+const DRIVE_FOLDER_ID     = '1-ORbs-in-ZE8VNdPpsChDFZkthXpVzgh'; // photos folder ID
+const UAT_DRIVE_FOLDER_ID = '1760iZECRr8StRBPkyPGWIk8WraFcDxfg';            // UAT documents folder ID
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function corsResponse(data) {
@@ -15,9 +16,8 @@ function corsResponse(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-function getFolder() {
-  return DriveApp.getFolderById(DRIVE_FOLDER_ID);
-}
+function getFolder()    { return DriveApp.getFolderById(DRIVE_FOLDER_ID); }
+function getUatFolder() { return DriveApp.getFolderById(UAT_DRIVE_FOLDER_ID); }
 
 // ── Sheet init ────────────────────────────────────────────────────────────
 function initSheet() {
@@ -25,7 +25,7 @@ function initSheet() {
   let sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
-    sheet.getRange(1,1,1,11).setValues([['id','state','facility','qty','installed','notes','updated_at','photo_ids','uat_json','planned_date','actual_date']]);
+    sheet.getRange(1,1,1,13).setValues([['id','state','facility','qty','installed','notes','updated_at','photo_ids','uat_json','planned_start','planned_end','actual_start','actual_end']]);
     sheet.getRange(1,1,1,9).setFontWeight('bold').setBackground('#1a4f8a').setFontColor('#ffffff');
     sheet.setFrozenRows(1);
     const LOCS = [
@@ -63,7 +63,7 @@ function initSheet() {
       [32,'Pulau Pinang','Hospital Pulau Pinang',13],
       [33,'Pulau Pinang','Hospital Seberang Jaya',8],
     ];
-    const rows = LOCS.map(l => [l[0], l[1], l[2], l[3], 0, '', '', '[]', '[]', '', '']);
+    const rows = LOCS.map(l => [l[0], l[1], l[2], l[3], 0, '', '', '[]', '[]', '', '', '', '']);
     sheet.getRange(2,1,rows.length,9).setValues(rows);
     sheet.setColumnWidth(3, 320); sheet.setColumnWidth(6, 200); sheet.setColumnWidth(10, 120); sheet.setColumnWidth(11, 120);
   } else {
@@ -75,20 +75,15 @@ function initSheet() {
       const lastRow = sheet.getLastRow();
       if (lastRow > 1) sheet.getRange(2, col, lastRow-1, 1).setValues(Array(lastRow-1).fill(['[]']));
     }
-    // Re-read headers after possible uat_json addition
-    const headers2 = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
-    if (!headers2.includes('planned_date')) {
-      const col = sheet.getLastColumn() + 1;
-      sheet.getRange(1, col).setValue('planned_date');
-      const lastRow = sheet.getLastRow();
-      if (lastRow > 1) sheet.getRange(2, col, lastRow-1, 1).setValues(Array(lastRow-1).fill(['']));
-    }
-    const headers3 = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
-    if (!headers3.includes('actual_date')) {
-      const col = sheet.getLastColumn() + 1;
-      sheet.getRange(1, col).setValue('actual_date');
-      const lastRow = sheet.getLastRow();
-      if (lastRow > 1) sheet.getRange(2, col, lastRow-1, 1).setValues(Array(lastRow-1).fill(['']));
+    // Migrate date columns
+    for (const colName of ['planned_start','planned_end','actual_start','actual_end']) {
+      const h = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
+      if (!h.includes(colName)) {
+        const col = sheet.getLastColumn() + 1;
+        sheet.getRange(1, col).setValue(colName);
+        const lastRow = sheet.getLastRow();
+        if (lastRow > 1) sheet.getRange(2, col, lastRow-1, 1).setValues(Array(lastRow-1).fill(['']));
+      }
     }
   }
   return sheet;
@@ -132,17 +127,21 @@ function doGet(e) {
         return { id: fid, name, view_url: 'https://drive.google.com/file/d/'+fid+'/preview', dl_url: 'https://drive.google.com/uc?export=download&id='+fid };
       });
 
-      const planCol = headers.indexOf('planned_date');
-      const actCol  = headers.indexOf('actual_date');
+      const psCol = headers.indexOf('planned_start');
+      const peCol = headers.indexOf('planned_end');
+      const asCol = headers.indexOf('actual_start');
+      const aeCol = headers.indexOf('actual_end');
 
       locations[id] = {
-        installed:    Number(row[4]) || 0,
-        notes:        row[5] || '',
-        updated_at:   row[6] || '',
+        installed:     Number(row[4]) || 0,
+        notes:         row[5] || '',
+        updated_at:    row[6] || '',
         photos,
         uat_docs,
-        planned_date: planCol >= 0 ? (row[planCol] || '') : '',
-        actual_date:  actCol  >= 0 ? (row[actCol]  || '') : ''
+        planned_start: psCol >= 0 ? (row[psCol] || '') : '',
+        planned_end:   peCol >= 0 ? (row[peCol] || '') : '',
+        actual_start:  asCol >= 0 ? (row[asCol] || '') : '',
+        actual_end:    aeCol >= 0 ? (row[aeCol] || '') : ''
       };
     }
     return corsResponse({ ok:true, updated: new Date().toISOString(), updated_by:'Aspek Tumpuan Sdn Bhd', locations });
@@ -211,7 +210,7 @@ function doPostInner(e) {
     // ── Upload UAT document ───────────────────────────────────────────────
     if (body.action === 'upload_uat') {
       if (!body.data) return corsResponse({ ok:false, error:'No file data received' });
-      const folder   = getFolder();
+      const folder   = getUatFolder();
       const siteId   = Number(body.site_id);
       const origName = body.file_name || ('UAT_site'+siteId+'_'+Date.now()+'.pdf');
       const mimeType = body.mime_type || 'application/pdf';
@@ -264,8 +263,9 @@ function doPostInner(e) {
           if (body.notes         !== undefined) sheet.getRange(r,6).setValue(body.notes);
           // Date fields — look up column by header
           const hdrs = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
-          if (body.planned_date !== undefined) { const ci = hdrs.indexOf('planned_date'); if (ci>=0) sheet.getRange(r, ci+1).setValue(body.planned_date); }
-          if (body.actual_date  !== undefined) { const ci = hdrs.indexOf('actual_date');  if (ci>=0) sheet.getRange(r, ci+1).setValue(body.actual_date); }
+          for (const f of ['planned_start','planned_end','actual_start','actual_end']) {
+            if (body[f] !== undefined) { const ci = hdrs.indexOf(f); if (ci>=0) sheet.getRange(r, ci+1).setValue(body[f]); }
+          }
           sheet.getRange(r,7).setValue(new Date().toISOString());
           return corsResponse({ ok:true, id });
         }
@@ -282,8 +282,9 @@ function doPostInner(e) {
         if (u.installed !== undefined) sheet.getRange(r,5).setValue(Number(u.installed));
         if (u.notes     !== undefined) sheet.getRange(r,6).setValue(u.notes);
         const bhdrs = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
-        if (u.planned_date !== undefined) { const ci = bhdrs.indexOf('planned_date'); if (ci>=0) sheet.getRange(r, ci+1).setValue(u.planned_date); }
-        if (u.actual_date  !== undefined) { const ci = bhdrs.indexOf('actual_date');  if (ci>=0) sheet.getRange(r, ci+1).setValue(u.actual_date); }
+        for (const f of ['planned_start','planned_end','actual_start','actual_end']) {
+          if (u[f] !== undefined) { const ci = bhdrs.indexOf(f); if (ci>=0) sheet.getRange(r, ci+1).setValue(u[f]); }
+        }
         sheet.getRange(r,7).setValue(new Date().toISOString());
       }
       return corsResponse({ ok:true, updated:(body.updates||[]).length });
