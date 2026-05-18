@@ -153,6 +153,15 @@ function doGet(e) {
 
 // ── POST — handle all writes ──────────────────────────────────────────────
 function doPost(e) {
+  // Outer guard — ensures we ALWAYS return JSON, never an HTML error page
+  try {
+    return doPostInner(e);
+  } catch(outerErr) {
+    return corsResponse({ ok: false, error: 'Unhandled server error: ' + outerErr.message });
+  }
+}
+
+function doPostInner(e) {
   try {
     const body = JSON.parse(e.postData.contents);
     if (body.password !== ADMIN_PASSWORD) return corsResponse({ ok:false, error:'Unauthorized' });
@@ -201,24 +210,33 @@ function doPost(e) {
 
     // ── Upload UAT document ───────────────────────────────────────────────
     if (body.action === 'upload_uat') {
+      if (!body.data) return corsResponse({ ok:false, error:'No file data received' });
       const folder   = getFolder();
       const siteId   = Number(body.site_id);
-      const fileName = body.file_name || ('UAT_site'+siteId+'_'+Date.now()+'.pdf');
+      const origName = body.file_name || ('UAT_site'+siteId+'_'+Date.now()+'.pdf');
       const mimeType = body.mime_type || 'application/pdf';
-      const blob     = Utilities.newBlob(Utilities.base64Decode(body.data), mimeType, fileName);
-      const file     = folder.createFile(blob);
+      // Decode base64 — strip data URI prefix if accidentally included
+      const b64clean = body.data.replace(/^data:[^;]+;base64,/, '');
+      let decoded;
+      try {
+        decoded = Utilities.base64Decode(b64clean);
+      } catch(decErr) {
+        return corsResponse({ ok:false, error:'Base64 decode failed: ' + decErr.message });
+      }
+      const blob = Utilities.newBlob(decoded, mimeType, origName);
+      const file = folder.createFile(blob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       const fileId = file.getId();
       for (let i = 1; i < rows.length; i++) {
         if (Number(rows[i][0]) === siteId) {
           let docs = []; try { docs = JSON.parse(rows[i][uatCol-1] || '[]'); } catch(ex) {}
-          docs.push({ id: fileId, name: fileName });
+          docs.push({ id: fileId, name: origName });
           sheet.getRange(i+1, uatCol).setValue(JSON.stringify(docs));
           sheet.getRange(i+1, 7).setValue(new Date().toISOString());
           break;
         }
       }
-      return corsResponse({ ok:true, file_id:fileId, name:fileName, view_url:'https://drive.google.com/file/d/'+fileId+'/preview', dl_url:'https://drive.google.com/uc?export=download&id='+fileId });
+      return corsResponse({ ok:true, file_id:fileId, name:origName, view_url:'https://drive.google.com/file/d/'+fileId+'/preview', dl_url:'https://drive.google.com/uc?export=download&id='+fileId });
     }
 
     // ── Delete UAT document ───────────────────────────────────────────────
