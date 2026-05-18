@@ -306,12 +306,13 @@ function photoStrip(id){
   const photos=getPhotos(id);if(!photos.length)return'<span style="font-size:11px;color:var(--muted)">-</span>';
   const MAX=4;let html='<div class="photo-strip">';
   photos.slice(0,MAX).forEach((p,i)=>{
-    const thumb=p.thumb||(p.id?'https://drive.google.com/uc?id='+p.id+'&export=view':'');
-    html+='<img class="photo-thumb" src="'+thumb+'" title="'+p.name+'" onclick="openLightbox('+id+','+i+')" onerror="this.src='https://drive.google.com/uc?id='+p.id+'&export=view'">';
+    const src=p.id?'https://lh3.googleusercontent.com/d/'+p.id+'=w400':(p.thumb||p.url||'');
+    html+='<img class="photo-thumb" src="'+src+'" title="'+p.name+'" onclick="openLightbox('+id+','+i+')">';
   });
-  if(photos.length>MAX)html+='<div class="photo-more" onclick="openLightbox('+id+','+MAX+')">+'+( photos.length-MAX)+'</div>';
+  if(photos.length>MAX)html+='<div class="photo-more" onclick="openLightbox('+id+','+MAX+')">+'+(photos.length-MAX)+'</div>';
   return html+'</div>';
 }
+
 let lbId=null,lbIdx=0;
 function openLightbox(id,idx){
   lbId=id;lbIdx=idx;const photos=getPhotos(id);if(!photos[idx])return;
